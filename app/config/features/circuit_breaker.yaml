@@ -1,0 +1,32 @@
+# Circuit Breaker 설정
+# 기능: 외부 서비스 장애 시 빠른 실패 및 자동 복구
+# 사용: 멀티 LLM 프로바이더 환경에서 Failover 지원
+
+circuit_breaker:
+  # Feature Flag: Circuit Breaker 전역 활성화/비활성화
+  # - true: Circuit Breaker 활성화 (Phase 2 장애 대응 자동화)
+  # - false: Circuit Breaker 비활성화 (롤백 시)
+  enabled: true  # ← Phase 2: 활성화
+
+  # Circuit Breaker별 개별 설정
+  # enabled=true인 경우에만 사용됨
+  document_retrieval:
+    failure_threshold: 5      # 연속 실패 임계값
+    success_threshold: 2      # 복구 성공 임계값
+    timeout: 60.0             # Open → Half-Open 대기 시간 (초)
+    half_open_timeout: 30.0   # Half-Open 최대 시간
+    enable_error_rate_check: true
+    error_rate_threshold: 0.5  # 50% 에러율 초과 시 차단
+    error_rate_window: 10      # 최근 10개 요청 기준
+
+  answer_generation:
+    failure_threshold: 5
+    success_threshold: 2
+    timeout: 60.0
+    half_open_timeout: 30.0
+    enable_error_rate_check: true
+    error_rate_threshold: 0.5
+    error_rate_window: 10
+
+# 2단계 확장 시:
+# enabled: true로 변경하면 즉시 Circuit Breaker 활성화

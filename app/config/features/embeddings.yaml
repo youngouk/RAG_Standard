@@ -1,0 +1,145 @@
+# 임베딩 설정
+# 기능: 문서를 벡터로 변환하는 임베딩 모델 설정
+# 사용: EmbedderFactory를 통해 설정 기반 임베더 자동 선택
+
+# ╔═══════════════════════════════════════════════════════════════╗
+# ║  ⚠️  중요: 임베딩 설정 변경 시 반드시 읽어주세요!              ║
+# ╠═══════════════════════════════════════════════════════════════╣
+# ║                                                               ║
+# ║  📐 아키텍처: 단일 임베더 공유 구조                            ║
+# ║  ┌─────────────────────────────────────────────────────────┐  ║
+# ║  │                  EmbedderFactory                        │  ║
+# ║  │                       ↓                                 │  ║
+# ║  │          DocumentProcessor.embedder                     │  ║
+# ║  │         (단일 인스턴스, 모든 곳에서 공유)                │  ║
+# ║  │                       │                                 │  ║
+# ║  │     ┌─────────────────┼─────────────────┐               │  ║
+# ║  │     ↓                 ↓                 ↓               │  ║
+# ║  │  문서 업로드     쿼리 검색      시맨틱 캐시              │  ║
+# ║  │  (embed_documents) (embed_query)  (embed_query)         │  ║
+# ║  └─────────────────────────────────────────────────────────┘  ║
+# ║                                                               ║
+# ║  ✅ 장점: 문서/쿼리 임베딩이 항상 동일한 모델 사용 보장       ║
+# ║                                                               ║
+# ║  🚨 모델 또는 차원 변경 시 필수 작업:                         ║
+# ║     1. 기존 문서 재인덱싱 필요 (벡터 공간 불일치 방지)        ║
+# ║     2. MongoDB/Weaviate 인덱스 재생성                         ║
+# ║     3. 시맨틱 캐시 초기화                                     ║
+# ║                                                               ║
+# ║  💡 재인덱싱 명령어:                                          ║
+# ║     make reindex  또는  python scripts/reindex_documents.py  ║
+# ║                                                               ║
+# ║  ⚡ 차원(output_dimensionality) 변경 시:                      ║
+# ║     - Vector Search 인덱스도 함께 재생성 필요                 ║
+# ║     - 저장 공간 및 검색 성능에 영향                           ║
+# ║                                                               ║
+# ╚═══════════════════════════════════════════════════════════════╝
+
+# ============================================================
+# Provider 선택
+# ============================================================
+# 지원 제공자:
+#   - "google"    : Google Gemini Embedding (직접 API)
+#   - "openai"    : OpenAI Embedding (직접 API)
+#   - "openrouter": OpenRouter 통합 게이트웨이 (권장 - 다양한 모델 지원)
+embeddings:
+  provider: "openrouter"
+
+  # ============================================================
+  # OpenRouter 설정 (권장)
+  # ============================================================
+  # 통합 게이트웨이를 통해 다양한 임베딩 모델을 단일 API로 사용
+  # 참고: https://openrouter.ai/models?q=embedding
+  openrouter:
+    # 사용할 모델 선택
+    # ⚠️ 모델 변경 시 기존 문서 재인덱싱 필수! (상단 경고 참조)
+    #
+    # 지원 모델:
+    #   - google/gemini-embedding-001  : 3072차원, 한국어 최적화, MTEB 1위 (기본값)
+    #   - openai/text-embedding-3-large: 3072차원, dimensions 파라미터 지원
+    #   - openai/text-embedding-3-small: 1536차원, dimensions 파라미터 지원
+    #   - qwen/qwen3-embedding-8b      : 3072차원, 다국어 지원, 높은 품질
+    #   - intfloat/e5-large-v2         : 1024차원, 범용 임베딩
+    model: "google/gemini-embedding-001"
+
+    # 출력 벡터 차원
+    # ⚠️ 차원 변경 시 Vector Index 재생성 + 문서 재인덱싱 필수!
+    #
+    # 주의: dimensions 파라미터 지원은 모델마다 다름
+    #   - openai/* 모델: 지원 (768, 1536, 3072 등 선택 가능)
+    #   - google/*, qwen/* 모델: 미지원 (고정 차원 사용)
+    output_dimensionality: 3072
+
+    # 배치 처리 설정
+    batch_size: 100
+
+    # API 인증
+    api_key: "${OPENROUTER_API_KEY:-}"
+
+    # OpenRouter 권장 헤더 (선택)
+    site_url: ""          # 앱 URL (크레딧 추적용)
+    app_name: "RAG-Chatbot"  # 앱 이름 (대시보드 표시)
+
+  # ============================================================
+  # Google 직접 API 설정 (대체)
+  # ============================================================
+  # provider: "google" 선택 시 사용
+  google:
+    # ⚠️ 모델 변경 시 기존 문서 재인덱싱 필수!
+    # 지원 모델:
+    #   - gemini-embedding-001: 3072차원, 한국어 최적화
+    #   - models/embedding-001: 768차원, 기본 모델
+    model: "gemini-embedding-001"
+    output_dimensionality: 3072
+    batch_size: 100
+
+    # 태스크 타입 (검색 최적화)
+    #   - RETRIEVAL_DOCUMENT: 문서 임베딩용
+    #   - RETRIEVAL_QUERY: 쿼리 임베딩용
+    task_type: "RETRIEVAL_DOCUMENT"
+
+    # API 키 (환경 변수 사용 권장)
+    api_key: "${GOOGLE_API_KEY:-}"
+
+  # ============================================================
+  # OpenAI 직접 API 설정 (대체)
+  # ============================================================
+  # provider: "openai" 선택 시 사용
+  openai:
+    # ⚠️ 모델 변경 시 기존 문서 재인덱싱 필수!
+    # 지원 모델:
+    #   - text-embedding-3-large: 3072차원, 최신 대형 모델
+    #   - text-embedding-3-small: 1536차원, 경량 모델
+    #   - text-embedding-ada-002: 1536차원, 레거시
+    model: "text-embedding-3-large"
+    output_dimensionality: 3072
+    batch_size: 100
+
+    # API 키 (환경 변수 사용 권장)
+    api_key: "${OPENAI_API_KEY:-}"
+
+# ============================================================
+# 모델 선택 가이드
+# ============================================================
+#
+# 🇰🇷 한국어 중심:
+#   → google/gemini-embedding-001 (권장)
+#   → MTEB Multilingual 1위, 100+ 언어 지원
+#
+# 🌏 다국어 균형:
+#   → qwen/qwen3-embedding-8b
+#   → 중국어/영어/한국어 균형, 높은 품질
+#
+# 💰 비용 효율:
+#   → openai/text-embedding-3-small
+#   → 1536차원으로 저장 비용 절감
+#
+# 🚀 최고 품질:
+#   → openai/text-embedding-3-large
+#   → 영어 MTEB 최상위권
+#
+# ============================================================
+
+# Sparse 검색은 MongoDB Atlas Full-Text Search (BM25) 사용
+# 별도의 sparse embedding 모델 불필요
+# MongoDB Atlas Search Index를 통해 자동으로 처리됨

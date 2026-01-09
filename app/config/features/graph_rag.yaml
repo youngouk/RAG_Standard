@@ -1,0 +1,98 @@
+# GraphRAG 설정
+# 기능: 지식 그래프 기반 검색으로 관계 질문 처리
+# 사용: GraphRAGFactory가 이 설정을 읽어 적절한 저장소 인스턴스 생성
+#
+# ╔═══════════════════════════════════════════════════════════════╗
+# ║  지원 프로바이더 (GraphRAGFactory):                            ║
+# ║  - networkx: NetworkX 인메모리 그래프 (경량, 기본값)           ║
+# ║  - neo4j: Neo4j 그래프 DB (대규모 프로덕션)                   ║
+# ╚═══════════════════════════════════════════════════════════════╝
+#
+# 활성화 방법:
+#   1. enabled: true로 변경
+#   2. 롤백 시: enabled: false로 변경
+
+graph_rag:
+  # 기본 비활성화 (안전한 기본값)
+  # 필요할 때만 활성화
+  enabled: false
+
+  # ========================================
+  # GraphRAGFactory 설정
+  # ========================================
+  # 프로바이더 선택: networkx (기본), neo4j
+  provider: "networkx"
+
+  # NetworkX 설정 (provider: networkx)
+  # 인메모리 경량 그래프, 단일 인스턴스 환경에 적합
+  networkx: {}
+
+  # Neo4j 설정 (provider: neo4j)
+  # 프로덕션 대규모 환경에 적합
+  # ⚠️ 환경변수 필요: NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
+  neo4j:
+    database: "neo4j"
+    # 연결 풀 설정 (프로덕션 레디)
+    connection_pool:
+      max_pool_size: 50        # 최대 연결 수
+      connection_timeout: 30.0  # 연결 획득 타임아웃 (초)
+      query_timeout: 60.0       # 쿼리 실행 타임아웃 (초)
+    # 재시도 설정 (지수 백오프)
+    retry:
+      max_attempts: 3          # 최대 재시도 횟수
+      delay: 1.0               # 초기 대기 시간 (초)
+      exponential_backoff: true  # 지수 백오프 활성화
+
+  # ========================================
+  # 엔티티/관계 추출 설정 (향후 구현)
+  # ========================================
+  extraction:
+    # 엔티티 추출기
+    entity_extractor: "llm"  # llm, rule_based
+
+    # 관계 추출기
+    relation_extractor: "llm"  # llm, pattern
+
+    # LLM 추출기 설정
+    llm:
+      model: "google/gemini-2.5-flash-lite"
+      max_entities_per_chunk: 20
+      max_relations_per_chunk: 30
+
+  # ========================================
+  # 벡터+그래프 하이브리드 검색 설정
+  # ========================================
+  # RetrievalOrchestrator에서 use_graph=True로 활성화
+  # VectorGraphHybridSearch가 벡터 검색과 그래프 검색을 RRF로 결합
+  hybrid_search:
+    # 활성화 여부 (graph_store가 있을 때 자동 활성화)
+    enabled: true
+
+    # 자동 하이브리드 검색 활성화
+    # true: RAGPipeline에서 use_graph=None일 때 자동으로 하이브리드 검색 사용
+    # false: 명시적으로 use_graph=True를 전달해야 하이브리드 검색 사용 (기본값)
+    auto_enable: false
+
+    # 그래프 검색 실패 시 벡터 검색만 사용
+    # true: 그래프 검색 오류 시 벡터 검색 결과만 반환 (기본값)
+    # false: 그래프 검색 오류 시 전체 요청 실패
+    fallback_to_vector: true
+
+    # 벡터 검색 가중치 (0.0 ~ 1.0)
+    # vector_weight + graph_weight는 자동 정규화됨
+    vector_weight: 0.6
+
+    # 그래프 검색 가중치 (0.0 ~ 1.0)
+    graph_weight: 0.4
+
+    # RRF (Reciprocal Rank Fusion) 상수
+    # 일반적으로 60 사용, 낮으면 상위 랭크 강조
+    rrf_k: 60
+
+  # ========================================
+  # 그래프 검색 설정 (search 섹션으로 통합)
+  # ========================================
+  search:
+    # 그래프 탐색 설정
+    max_depth: 2  # 최대 탐색 깊이
+    max_neighbors: 50  # 최대 이웃 수

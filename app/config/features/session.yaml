@@ -1,0 +1,29 @@
+# 세션 관리 설정
+# 기능: 사용자 대화 세션의 생명주기 및 메모리 관리
+# 사용: TTL, 메모리 제한, 정리 주기, 저장소 백엔드 설정
+
+session:
+  enabled: true
+  ttl_seconds: 3600
+  max_exchanges: 10                # 최대 대화 교환 수 (1교환 = user + assistant 메시지)
+  memory_limit_per_session: 5
+  cleanup_interval_seconds: 600
+  storage_backend: "memory"
+
+  # 채팅 히스토리 MongoDB 영구 저장 설정
+  # Phase 1: 초기 배포 시 비활성화 (안전한 배포)
+  save_chat_to_mongodb: false
+
+  # MongoDB 저장 재시도 설정
+  mongodb_save_retry: 3           # 실패 시 재시도 횟수
+  mongodb_save_timeout: 1.0       # 각 시도당 타임아웃 (초)
+  mongodb_save_batch_size: 1      # 배치 저장 크기 (향후 최적화용)
+
+  # 대화 요약 설정
+  # Phase 1: 초기 배포 시 비활성화 (충분한 테스트 후 활성화)
+  conversation_summary:
+    enabled: false                # 요약 기능 온/오프
+    trigger_count: 10             # 몇 개 대화부터 요약? (기본: 10개)
+    llm_provider: "google"        # 요약 LLM (google=Gemini)
+    llm_model: "gemini-2.0-flash-lite"  # 경량 모델 사용
+    cache_ttl: 3600               # 요약 캐시 TTL (초, 기본: 1시간)

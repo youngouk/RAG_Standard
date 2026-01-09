@@ -1,0 +1,36 @@
+# 캐시 설정
+# 기능: 검색 결과 캐싱으로 응답 속도 향상 및 API 비용 절감
+# 사용: CacheFactory가 이 설정을 읽어 적절한 캐시 인스턴스 생성
+#
+# ╔═══════════════════════════════════════════════════════════════╗
+# ║  지원 프로바이더:                                              ║
+# ║  - memory: In-memory LRU 캐시 (단일 인스턴스, 기본값)         ║
+# ║  - redis: Redis 분산 캐시 (다중 인스턴스) - REDIS_URL 필요    ║
+# ║  - semantic: 쿼리 임베딩 유사도 기반 (embedder 필요)          ║
+# ╚═══════════════════════════════════════════════════════════════╝
+
+cache:
+  # ⚠️ semantic 캐시는 embedder가 필요합니다!
+  # ⚠️ redis 캐시는 REDIS_URL 환경변수가 필요합니다!
+  provider: "semantic"  # memory, redis, semantic
+
+  # Memory 캐시 설정 (provider: memory)
+  # 단일 인스턴스 환경에 적합, 서버 재시작 시 캐시 초기화
+  memory:
+    maxsize: 1000      # 최대 캐시 항목 수
+    ttl: 3600          # TTL (초) - 기본 1시간
+
+  # Redis 캐시 설정 (provider: redis)
+  # 다중 인스턴스 환경, 영속성 필요 시 사용
+  # ⚠️ REDIS_URL 환경변수 필요!
+  redis:
+    ttl: 3600          # TTL (초)
+    prefix: "rag:"     # 키 접두사 (네임스페이스 분리)
+
+  # Semantic 캐시 설정 (provider: semantic)
+  # 유사한 쿼리에 대해 캐시 히트율 향상
+  # ⚠️ embedder 인스턴스 필요!
+  semantic:
+    similarity_threshold: 0.92  # 유사도 임계값 (높을수록 보수적)
+    max_entries: 1000           # 최대 캐시 항목 수
+    ttl: 3600                   # TTL (초)

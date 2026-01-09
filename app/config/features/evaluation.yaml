@@ -1,0 +1,80 @@
+# 평가 시스템 설정 (Evaluation System)
+# 기능: RAG 답변 품질 측정 및 개선
+# 사용: 실시간 평가, 배치 평가, 피드백 수집
+
+evaluation:
+  # 1. Feature Flag 설정
+  # Phase 1: 기본 비활성화 (점진적 롤아웃)
+  enabled: false
+
+  # 2. 평가기 프로바이더 설정
+  # internal: LLM 기반 실시간 평가 (빠름, 저비용)
+  # ragas: Ragas 라이브러리 배치 평가 (공신력, Phase 2)
+  provider: "internal"
+
+  # 3. Internal 평가기 설정 (실시간)
+  internal:
+    # 평가용 LLM 모델 (경량 모델 사용)
+    model: "google/gemini-2.5-flash-lite"
+
+    # 타임아웃 (초)
+    timeout: 10.0
+
+    # 평가 차원별 가중치
+    weights:
+      faithfulness: 0.5  # 충실도 (컨텍스트 근거)
+      relevance: 0.5     # 관련성 (질문 의도 부합)
+
+  # 4. Ragas 평가기 설정 (배치, Phase 2)
+  ragas:
+    # 사용할 Ragas 메트릭
+    metrics:
+      - "faithfulness"         # 충실도
+      - "answer_relevancy"     # 답변 관련성
+      - "context_precision"    # 컨텍스트 정밀도
+      - "answer_similarity"    # 답변 유사도 (정답셋 필요)
+
+    # 배치 크기
+    batch_size: 10
+
+    # 평가용 LLM 모델
+    llm_model: "gpt-4o"
+
+    # 임베딩 모델
+    embedding_model: "text-embedding-3-large"
+
+  # 5. 피드백 수집 설정
+  feedback:
+    # 피드백 수집 활성화
+    enabled: true
+
+    # 피드백 저장소 (PostgreSQL)
+    storage: "postgres"
+
+    # Golden Dataset 자동 후보 등록
+    auto_golden_candidate: true
+
+    # Golden 후보 등록 최소 점수
+    min_score_for_golden: 0.9
+
+  # 6. 품질 임계값 설정
+  thresholds:
+    # 답변 수용 최소 점수 (이하 시 경고)
+    min_acceptable: 0.6
+
+    # 좋은 품질 기준
+    good_quality: 0.8
+
+    # 우수 품질 기준
+    excellent_quality: 0.9
+
+  # 7. 모니터링 설정
+  monitoring:
+    # 평가 로깅 활성화
+    log_evaluations: true
+
+    # 메트릭 수집
+    enable_metrics: true
+
+    # 메트릭 저장 백엔드
+    metrics_backend: "redis"  # redis | memory | postgres

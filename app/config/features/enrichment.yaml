@@ -1,0 +1,82 @@
+# LLM 문서 보강 설정
+# 문서 로드 시 LLM을 사용하여 메타데이터를 자동 생성
+
+enrichment:
+  # 보강 기능 활성화 여부 (기본값: false - 추후 고도화 완료 후 true로 변경)
+  enabled: ${ENRICHMENT_ENABLED:-false}
+
+  # LLM 설정
+  llm:
+    # 사용할 LLM 모델 (gpt-4o-mini 권장 - 비용 효율적)
+    model: ${ENRICHMENT_LLM_MODEL:-gpt-4o-mini}
+
+    # 온도 설정 (0.0-1.0, 낮을수록 일관된 결과)
+    temperature: ${ENRICHMENT_LLM_TEMPERATURE:-0.1}
+
+    # 최대 토큰 수
+    max_tokens: ${ENRICHMENT_LLM_MAX_TOKENS:-1000}
+
+    # API 키 (OpenAI API 키 재사용)
+    api_key: ${OPENAI_API_KEY}
+
+  # 배치 처리 설정
+  batch:
+    # 배치 크기 (한 번에 처리할 문서 수)
+    size: ${ENRICHMENT_BATCH_SIZE:-10}
+
+    # 동시 처리 수 (병렬 처리)
+    concurrency: ${ENRICHMENT_CONCURRENCY:-3}
+
+  # 타임아웃 설정 (초 단위)
+  timeout:
+    # 단건 처리 타임아웃
+    single: ${ENRICHMENT_TIMEOUT_SINGLE:-30}
+
+    # 배치 처리 타임아웃
+    batch: ${ENRICHMENT_TIMEOUT_BATCH:-90}
+
+  # 재시도 설정
+  retry:
+    # 최대 재시도 횟수
+    max_attempts: ${ENRICHMENT_MAX_RETRIES:-3}
+
+    # 재시도 간격 (초)
+    initial_delay: 1
+
+    # 지수 백오프 계수
+    backoff_factor: 2
+
+  # 캐싱 설정
+  cache:
+    # 캐싱 활성화 여부
+    enabled: ${ENRICHMENT_CACHE_ENABLED:-false}
+
+    # 캐시 TTL (초, 24시간)
+    ttl: ${ENRICHMENT_CACHE_TTL:-86400}
+
+  # 품질 설정
+  quality:
+    # 최소 신뢰도 점수 (0.0-1.0)
+    min_confidence: ${ENRICHMENT_MIN_CONFIDENCE:-0.0}
+
+    # 보강 실패 시 원본 사용 여부
+    fallback_to_original: true
+
+  # 로깅 설정
+  logging:
+    # 성공률 추적
+    track_success_rate: true
+
+    # 실패한 문서 ID 저장 (재처리용)
+    save_failed_ids: true
+
+    # 토큰 사용량 추적
+    track_token_usage: true
+
+  # 프롬프트 설정
+  prompt:
+    # 프롬프트 버전
+    version: "v1"
+
+    # Few-shot 예시 개수
+    num_examples: 2

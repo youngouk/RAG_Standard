@@ -1,0 +1,46 @@
+# SQL Search Configuration
+# LLM 기반 SQL 생성 및 PostgreSQL 메타데이터 검색 설정
+
+sql_search:
+  # 전체 활성화/비활성화
+  enabled: ${SQL_SEARCH_ENABLED:-true}
+
+  # SQL Generator 설정 (LLM 기반 SQL 생성)
+  generator:
+    # OpenRouter 모델 (Claude Opus 4.5 - SQL 생성 최고 정확도)
+    model: ${SQL_GENERATOR_MODEL:-anthropic/claude-opus-4.5}
+    max_tokens: 1024
+    temperature: 0.1  # SQL 생성은 일관성 중요
+
+  # Query Executor 설정 (PostgreSQL 실행)
+  executor:
+    timeout: 10  # 초 단위 쿼리 타임아웃
+    max_rows: 100  # 최대 반환 행 수
+    # 메타데이터 테이블 목록 (get_table_stats용)
+    tables:
+      - "product_metadata"
+      - "service_metadata"
+      - "place_metadata"
+
+  # Result Formatter 설정 (결과 포맷팅)
+  formatter:
+    max_items: 10  # 최대 표시 항목 수
+    # 수치형(비용) 필드 목록 (원 단위 포맷팅용)
+    numeric_fields:
+      - "price_basic"
+      - "price_premium"
+      - "cost_service"
+      - "cost_option"
+      - "penalty_fee"
+      - "discount_amount"
+
+  # RAG 파이프라인 통합 설정
+  pipeline:
+    # SQL 검색과 RAG 검색 병렬 실행
+    parallel_with_rag: true
+    # SQL 검색 타임아웃 (RAG보다 짧게)
+    timeout: 8  # 초
+    # SQL 결과를 컨텍스트에 포함할지 여부
+    include_in_context: true
+    # SQL 결과 우선순위 (높을수록 답변 생성 시 우선 참조)
+    context_priority: high  # high | medium | low

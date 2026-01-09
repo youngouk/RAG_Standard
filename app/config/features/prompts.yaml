@@ -1,0 +1,22 @@
+# =====================================================
+# Prompts 설정 (Hybrid Mode: PostgreSQL + JSON)
+# =====================================================
+# 프롬프트 관리 시스템 설정
+#
+# Hybrid Mode:
+# - Primary: PostgreSQL (영구 데이터 저장)
+# - Fallback: JSON (로컬 파일, Railway 재배포 시 손실 가능)
+#
+# 마이그레이션 가이드:
+# - Railway 배포 환경: use_database=true (PostgreSQL 사용)
+# - 로컬 개발 환경: use_database=false (JSON 사용)
+
+prompts:
+  # PostgreSQL 사용 여부 (Hybrid Mode)
+  use_database: ${USE_DATABASE:-true}  # 기본값: true (PostgreSQL 사용)
+
+  # JSON 폴백 설정 (로컬 파일 경로)
+  storage_path: "./data/prompts"  # JSON 파일 저장 경로
+
+  # 초기화 설정
+  initialize_on_startup: true  # 서버 시작 시 Repository 초기화

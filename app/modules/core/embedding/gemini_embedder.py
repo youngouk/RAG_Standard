@@ -1,0 +1,246 @@
+"""
+Gemini Embedding 구현체
+
+Google Gemini Embedding API를 사용한 임베딩 생성
+gemini-embedding-001 모델로 1536차원 벡터 생성 및 L2 정규화 수행
+"""
+
+import asyncio
+from typing import Literal
+
+import google.generativeai as genai
+import numpy as np
+from langchain.embeddings.base import Embeddings
+
+from ....lib.logger import get_logger
+from .interfaces import BaseEmbedder
+
+logger = get_logger(__name__)
+
+
+class GeminiEmbedder(BaseEmbedder, Embeddings):
+    """
+    Google Gemini Embedding 001 모델 래퍼
+
+    BaseEmbedder와 LangChain Embeddings를 모두 구현하여
+    기존 코드와의 호환성 유지 및 확장 가능성 확보
+    """
+
+    def __init__(
+        self,
+        google_api_key: str,
+        model_name: str = "models/gemini-embedding-001",
+        output_dimensionality: int = 1536,
+        batch_size: int = 100,
+        task_type: Literal["RETRIEVAL_DOCUMENT", "RETRIEVAL_QUERY"] | None = None,
+    ):
+        """
+        Gemini Embedder 초기화
+
+        Args:
+            google_api_key: Google API 키
+            model_name: 모델 이름 (기본: models/gemini-embedding-001)
+            output_dimensionality: 출력 차원 (기본: 1536)
+            batch_size: 배치 임베딩 생성 시 배치 크기
+            task_type: 기본 태스크 타입 (메서드에서 오버라이드 가능)
+        """
+        # BaseEmbedder 초기화
+        super().__init__(
+            model_name=model_name,
+            output_dimensionality=output_dimensionality,
+            api_key=google_api_key,
+        )
+
+        # Gemini API 설정
+        genai.configure(api_key=google_api_key)
+
+        self.batch_size = batch_size
+        self.default_task_type = task_type or "RETRIEVAL_DOCUMENT"
+
+        logger.info(f"Initialized GeminiEmbedder: model={model_name}, dim={output_dimensionality}")
+
+    def _normalize_vector(self, vector: list[float]) -> list[float]:
+        """
+        L2 정규화 수행 (필수)
+
+        1536차원 출력은 정규화되지 않은 상태로 반환되므로 반드시 정규화 필요
+
+        Args:
+            vector: 정규화할 벡터
+
+        Returns:
+            L2 정규화된 벡터
+        """
+        arr = np.array(vector)
+        norm = np.linalg.norm(arr)
+
+        if norm > 0:
+            normalized = arr / norm
+            return normalized.tolist()  # type: ignore[no-any-return]
+
+        logger.warning("Zero norm vector encountered, returning as-is")
+        return vector
+
+    def _batch_embed(self, texts: list[str], task_type: str) -> list[list[float]]:
+        """
+        배치 단위로 임베딩 생성 (동기 버전)
+
+        Args:
+            texts: 임베딩할 텍스트 리스트
+            task_type: Gemini API task type (RETRIEVAL_DOCUMENT or RETRIEVAL_QUERY)
+
+        Returns:
+            정규화된 임베딩 벡터 리스트
+        """
+        embeddings = []
+
+        # 배치 처리
+        for i in range(0, len(texts), self.batch_size):
+            batch = texts[i : i + self.batch_size]
+
+            try:
+                # Gemini API 호출
+                result = genai.embed_content(  # type: ignore[arg-type]
+                    model=self.model_name,
+                    content=batch,
+                    task_type=task_type,
+                    output_dimensionality=self.output_dimensionality,
+                )
+
+                # 결과가 단일 임베딩인 경우와 리스트인 경우 처리
+                if "embedding" in result:
+                    # 배치가 1개인 경우와 여러 개인 경우 구분
+                    if len(batch) == 1:
+                        # 단일 텍스트 처리
+                        normalized = self._normalize_vector(result["embedding"])
+                        embeddings.append(normalized)
+                    else:
+                        # 여러 텍스트를 한 번에 처리한 경우
+                        # result['embedding']은 리스트의 리스트
+                        for embedding in result["embedding"]:
+                            if isinstance(embedding, list):
+                                normalized = self._normalize_vector(embedding)
+                                embeddings.append(normalized)
+                elif "embeddings" in result:
+                    # 이 경우는 실제로 발생하지 않지만 안전을 위해 유지
+                    for embedding in result["embeddings"]:
+                        normalized = self._normalize_vector(embedding)
+                        embeddings.append(normalized)
+                else:
+                    logger.error(f"Unexpected result format: {result.keys()}")
+
+            except Exception as e:
+                logger.error(f"Error generating embeddings for batch {i//self.batch_size}: {e}")
+                # 오류 발생 시 빈 벡터 추가
+                for _ in batch:
+                    embeddings.append([0.0] * self.output_dimensionality)
+
+        return embeddings
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        """
+        문서 임베딩 생성 (RETRIEVAL_DOCUMENT 타입)
+
+        Args:
+            texts: 임베딩할 문서 텍스트 리스트
+
+        Returns:
+            L2 정규화된 1536차원 임베딩 벡터 리스트
+        """
+        if not texts:
+            return []
+
+        logger.info(f"Embedding {len(texts)} documents with task_type=RETRIEVAL_DOCUMENT")
+
+        # 배치 처리로 임베딩 생성
+        embeddings = self._batch_embed(texts, "RETRIEVAL_DOCUMENT")
+
+        logger.info(f"Generated {len(embeddings)} document embeddings")
+        return embeddings
+
+    def embed_query(self, text: str) -> list[float]:
+        """
+        쿼리 임베딩 생성 (RETRIEVAL_QUERY 타입)
+
+        Args:
+            text: 임베딩할 쿼리 텍스트
+
+        Returns:
+            L2 정규화된 1536차원 임베딩 벡터
+        """
+        logger.debug("Embedding query with task_type=RETRIEVAL_QUERY")
+
+        try:
+            # 단일 쿼리 임베딩
+            result = genai.embed_content(
+                model=self.model_name,
+                content=text,
+                task_type="RETRIEVAL_QUERY",
+                output_dimensionality=self.output_dimensionality,
+            )
+
+            # L2 정규화 수행
+            embedding = result.get("embedding", [])
+            normalized = self._normalize_vector(embedding)
+
+            # 차원 확인
+            if len(normalized) != self.output_dimensionality:
+                logger.warning(
+                    f"Unexpected embedding dimension: {len(normalized)} != {self.output_dimensionality}"
+                )
+
+            return normalized
+
+        except Exception as e:
+            logger.error(f"Error generating query embedding: {e}")
+            # 오류 발생 시 영벡터 반환
+            return [0.0] * self.output_dimensionality
+
+    async def aembed_documents(self, texts: list[str]) -> list[list[float]]:
+        """
+        비동기 문서 임베딩 생성
+
+        Args:
+            texts: 임베딩할 문서 텍스트 리스트
+
+        Returns:
+            L2 정규화된 1536차원 임베딩 벡터 리스트
+        """
+        # 동기 메서드를 비동기로 실행
+        return await asyncio.to_thread(self.embed_documents, texts)
+
+    async def aembed_query(self, text: str) -> list[float]:
+        """
+        비동기 쿼리 임베딩 생성
+
+        Args:
+            text: 임베딩할 쿼리 텍스트
+
+        Returns:
+            L2 정규화된 1536차원 임베딩 벡터
+        """
+        # 동기 메서드를 비동기로 실행
+        return await asyncio.to_thread(self.embed_query, text)
+
+    def validate_embedding(self, embedding: list[float]) -> bool:
+        """
+        임베딩 벡터 검증
+
+        Args:
+            embedding: 검증할 임베딩 벡터
+
+        Returns:
+            검증 성공 여부
+        """
+        # 차원 확인
+        if not self._validate_dimension(embedding):
+            logger.error(f"Invalid dimension: {len(embedding)} != {self.output_dimensionality}")
+            return False
+
+        # L2 norm 확인 (정규화 여부)
+        norm = np.linalg.norm(np.array(embedding))
+        if abs(norm - 1.0) > 0.01:  # 허용 오차
+            logger.warning(f"Vector not normalized: norm={norm}")
+            return False
+
+        return True

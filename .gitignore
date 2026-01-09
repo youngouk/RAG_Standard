@@ -1,0 +1,114 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+.venv_lint/
+venv/
+ENV/
+.env
+
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/
+
+
+# Local env files
+.env
+.env.*
+!.env.example
+API_KEYS.txt
+
+# Byte-compiled / optimized / DLL files
+*.so
+
+# Cache
+.cache/
+pytest_cache/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.uvcache/
+.import_linter_cache/
+.importlinter_cache/
+
+# Coverage
+.coverage
+.coverage*
+coverage.xml
+coverage.json
+htmlcov/
+
+# macOS
+.AppleDouble
+.LSOverride
+Icon?
+.DS_Store
+
+# IDE & AI Tools
+.vscode/
+.idea/
+.claude/
+.cursor/
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+OpenSource.md
+
+# Logs
+logs/
+*.log
+out.log
+err.log
+
+# Virtual environments
+.venv/
+.venv_lint/
+venv/
+ENV/
+.venv_system/
+
+# Local env files
+.env
+.env.*
+!.env.example
+API_KEYS.txt
+
+# Backups and Archives
+backups/
+.backups/
+**/.archive/
+*.bak
+*.swp
+*~
+
+# Models and ML artifacts
+/models/
+*.onnx
+*.bin
+*.safetensors
+huggingface_cache/
+spacy_models/
+
+# Database artifacts
+*.db
+*.sqlite3
+dump.rdb
+
+# Temporary and duplicate files
+*" 2."*
+* 2.*
+*" copy"*
+temp/
+tmp/
+

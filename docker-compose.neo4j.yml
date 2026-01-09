@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  neo4j:
+    # Neo4j Community Edition 5.x
+    image: neo4j:5.27-community
+    container_name: neo4j-local
+    restart: unless-stopped
+    ports:
+      - "7474:7474"  # HTTP (브라우저 UI)
+      - "7687:7687"  # Bolt (드라이버 연결)
+    environment:
+      # 초기 비밀번호 설정 (첫 실행 시)
+      NEO4J_AUTH: neo4j/testpassword123
+
+      # 메모리 설정 (개발 환경)
+      NEO4J_server_memory_heap_initial__size: 512m
+      NEO4J_server_memory_heap_max__size: 1G
+      NEO4J_server_memory_pagecache_size: 256m
+
+      # 플러그인 (APOC - 유틸리티 함수)
+      NEO4J_PLUGINS: '["apoc"]'
+
+      # 로그 레벨
+      NEO4J_dbms_logs_debug_level: INFO
+    volumes:
+      # Named volume으로 데이터 영속화
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:7474"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  neo4j_data:
+    name: neo4j_local_data
+  neo4j_logs:
+    name: neo4j_local_logs

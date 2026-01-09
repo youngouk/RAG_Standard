@@ -1,0 +1,245 @@
+"""
+MCPToolFactory - 설정 기반 MCP 도구 팩토리
+
+EmbedderFactory, RerankerFactory와 동일한 패턴.
+YAML 설정에 따라 도구를 동적으로 등록/비활성화.
+
+사용 예시:
+    from app.modules.core.mcp import MCPToolFactory
+
+    # 설정 기반 MCP 서버 생성
+    mcp_server = MCPToolFactory.create(config)
+
+    # 지원 도구 조회
+    MCPToolFactory.get_supported_tools()
+    MCPToolFactory.list_tools_by_category("weaviate")
+"""
+
+from typing import TYPE_CHECKING, Any
+
+from ....lib.logger import get_logger
+from .interfaces import MCPServerConfig, MCPToolConfig
+
+if TYPE_CHECKING:
+    from .server import MCPServer
+
+logger = get_logger(__name__)
+
+
+# ========================================
+# 지원 도구 레지스트리
+# ========================================
+# 새 도구 추가 시 여기에 등록
+# 패턴: RerankerFactory.SUPPORTED_RERANKERS와 동일
+
+SUPPORTED_TOOLS: dict[str, dict[str, Any]] = {
+    # Weaviate 검색 도구
+    "search_weaviate": {
+        "category": "weaviate",
+        "description": "Weaviate 벡터 DB에서 정보를 하이브리드 검색합니다",
+        "module": "app.modules.core.mcp.tools.weaviate",
+        "function": "search_weaviate",
+        "default_config": {
+            "timeout": 15,
+            "default_top_k": 10,
+            "alpha": 0.6,
+        },
+    },
+    "get_document_by_id": {
+        "category": "weaviate",
+        "description": "문서 ID로 벡터 DB에서 직접 조회합니다",
+        "module": "app.modules.core.mcp.tools.weaviate",
+        "function": "get_document_by_id",
+        "default_config": {
+            "timeout": 5,
+        },
+    },
+    # Notion 검색 도구
+    "search_notion": {
+        "category": "notion",
+        "description": "메타데이터 소스(Notion 등)에서 정보를 검색합니다",
+        "module": "app.modules.core.mcp.tools.notion",
+        "function": "search_notion",
+        "default_config": {
+            "timeout": 10,
+        },
+    },
+    # SQL 검색 도구
+    "query_sql": {
+        "category": "sql",
+        "description": "자연어 질문을 SQL로 변환하여 메타데이터 DB를 검색합니다",
+        "module": "app.modules.core.mcp.tools.sql",
+        "function": "query_sql",
+        "default_config": {
+            "timeout": 20,
+            "max_rows": 100,
+        },
+    },
+    "get_table_schema": {
+        "category": "sql",
+        "description": "테이블 스키마(컬럼 정보)를 조회합니다",
+        "module": "app.modules.core.mcp.tools.sql",
+        "function": "get_table_schema",
+        "default_config": {
+            "timeout": 5,
+        },
+    },
+    # GraphRAG 검색 도구
+    "search_graph": {
+        "category": "graph",
+        "description": "지식 그래프에서 엔티티와 관계를 검색합니다",
+        "module": "app.modules.core.mcp.tools.graph_tools",
+        "function": "search_graph",
+        "default_config": {
+            "timeout": 15,
+            "default_top_k": 10,
+        },
+    },
+    "get_neighbors": {
+        "category": "graph",
+        "description": "엔티티의 이웃 엔티티와 관계를 조회합니다",
+        "module": "app.modules.core.mcp.tools.graph_tools",
+        "function": "get_neighbors",
+        "default_config": {
+            "timeout": 10,
+            "default_max_depth": 1,
+        },
+    },
+}
+
+
+class MCPToolFactory:
+    """
+    MCP 도구 팩토리
+
+    설정 딕셔너리를 기반으로 MCPServer를 생성하고
+    활성화된 도구들을 등록합니다.
+
+    RerankerFactory와 동일한 패턴:
+    - SUPPORTED_TOOLS 레지스트리
+    - create() 정적 메서드
+    - get_supported_tools(), get_tool_info() 조회 메서드
+    """
+
+    @staticmethod
+    def create(config: dict[str, Any]) -> "MCPServer":
+        """
+        설정 기반 MCP 서버 생성
+
+        Args:
+            config: 전체 설정 딕셔너리 (mcp 섹션 포함)
+
+        Returns:
+            MCPServer: MCPServer 인스턴스
+
+        Raises:
+            ValueError: MCP가 비활성화된 경우
+        """
+        mcp_config = config.get("mcp", {})
+
+        if not mcp_config.get("enabled", False):
+            raise ValueError("MCP가 비활성화되어 있습니다 (mcp.enabled=false)")
+
+        # 서버 설정 생성
+        server_config = MCPServerConfig(
+            enabled=True,
+            server_name=mcp_config.get("server_name", "blank-rag-system"),
+            default_timeout=float(mcp_config.get("default_timeout", 30.0)),
+            max_concurrent_tools=int(mcp_config.get("max_concurrent_tools", 3)),
+        )
+
+        # 활성화된 도구 수집
+        tools_config = mcp_config.get("tools", {})
+        enabled_tools: dict[str, MCPToolConfig] = {}
+
+        for tool_name, tool_info in SUPPORTED_TOOLS.items():
+            tool_yaml = tools_config.get(tool_name, {})
+
+            # YAML에서 enabled 확인 (기본값: True)
+            if not tool_yaml.get("enabled", True):
+                logger.debug(f"MCP 도구 비활성화: {tool_name}")
+                continue
+
+            # 도구 설정 병합 (YAML > 기본값)
+            default_config = tool_info.get("default_config", {})
+            merged_params = {**default_config, **tool_yaml.get("parameters", {})}
+
+            tool_config = MCPToolConfig(
+                name=tool_name,
+                description=tool_yaml.get("description", tool_info["description"]),
+                enabled=True,
+                timeout=float(tool_yaml.get("timeout", default_config.get("timeout", 30.0))),
+                parameters=merged_params,
+            )
+
+            enabled_tools[tool_name] = tool_config
+            logger.debug(f"MCP 도구 활성화: {tool_name}")
+
+        server_config.tools = enabled_tools
+
+        logger.info(
+            f"🔧 MCPToolFactory: {len(enabled_tools)}개 도구 활성화 "
+            f"({list(enabled_tools.keys())})"
+        )
+
+        # MCPServer 인스턴스 생성
+        from .server import MCPServer
+
+        return MCPServer(config=server_config, global_config=config)
+
+    @staticmethod
+    def get_supported_tools() -> list[str]:
+        """지원하는 모든 도구 이름 반환"""
+        return list(SUPPORTED_TOOLS.keys())
+
+    @staticmethod
+    def get_tool_info(tool_name: str) -> dict[str, Any] | None:
+        """특정 도구의 상세 정보 반환"""
+        return SUPPORTED_TOOLS.get(tool_name)
+
+    @staticmethod
+    def list_tools_by_category(category: str) -> list[str]:
+        """
+        카테고리별 도구 목록 반환
+
+        Args:
+            category: 도구 카테고리 (weaviate, notion, sql)
+
+        Returns:
+            해당 카테고리의 도구 이름 리스트
+        """
+        return [
+            name
+            for name, info in SUPPORTED_TOOLS.items()
+            if info.get("category") == category
+        ]
+
+    @staticmethod
+    def register_tool(
+        tool_name: str,
+        category: str,
+        description: str,
+        module: str,
+        function: str,
+        default_config: dict[str, Any] | None = None,
+    ) -> None:
+        """
+        새 도구 동적 등록 (플러그인 방식)
+
+        Args:
+            tool_name: 도구 이름
+            category: 카테고리
+            description: 설명
+            module: 모듈 경로
+            function: 함수 이름
+            default_config: 기본 설정
+        """
+        SUPPORTED_TOOLS[tool_name] = {
+            "category": category,
+            "description": description,
+            "module": module,
+            "function": function,
+            "default_config": default_config or {},
+        }
+        logger.info(f"📦 MCP 도구 등록: {tool_name} ({category})")
+

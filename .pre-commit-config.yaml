@@ -1,0 +1,71 @@
+# Pre-commit hooks for RAG Chatbot
+# 설치: uv run pre-commit install
+# 수동 실행: uv run pre-commit run --all-files
+
+repos:
+  # Import Linter: 의존성 계층 및 순환 참조 검증
+  - repo: local
+    hooks:
+      - id: import-linter
+        name: Check import dependencies
+        entry: uv run lint-imports
+        language: system
+        pass_filenames: false
+        files: \.py$
+
+  # Ruff: 빠른 Python 린팅 (Flake8, isort 대체)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.8
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        files: \.py$
+
+  # Black: 코드 포맷팅
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        language_version: python3.11
+        files: \.py$
+
+  # YAML Lint: YAML 파일 검증
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-yaml
+        args: [--unsafe]
+        files: \.(yaml|yml)$
+      - id: end-of-file-fixer
+        files: \.(py|yaml|yml|md|txt)$
+      - id: trailing-whitespace
+        files: \.(py|yaml|yml|md|txt)$
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: check-merge-conflict
+
+  # MyPy: 타입 체크 (핵심 데이터 처리 모듈 엄격 검증)
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.18.2
+    hooks:
+      - id: mypy
+        args: [--config-file=pyproject.toml]
+        additional_dependencies: [types-PyYAML, types-cachetools, types-requests]
+        # 엄격 모드 적용 대상: 데이터 처리 핵심 모듈
+        # - privacy, self_rag: 개인정보 처리, 품질 평가
+        # - lib: 공통 유틸리티 타입
+        # - retrieval: RAG 검색 파이프라인 전체
+        # - generation: LLM 답변 생성
+        # - documents: 문서 파싱/청킹
+        # - embedding: 벡터 임베딩
+        # - routing: 쿼리 라우팅
+        files: ^app/(lib/|modules/core/(privacy|self_rag|retrieval|generation|documents|embedding|routing)/)
+
+# CI: false로 설정하면 CI 환경에서는 실행하지 않음
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit.com hooks
+
+    for more information, see https://pre-commit.ci
+  autoupdate_commit_msg: |
+    [pre-commit.ci] pre-commit autoupdate

@@ -1,0 +1,360 @@
+[project]
+name = "rag-chatbot"
+version = "3.0.0"
+description = "Enhanced 한국어 RAG 챗봇 시스템 - 시멘틱 청킹, 동적 임계값, GPT-5 쿼리 확장 지원"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "RAG Chatbot Team"},
+]
+keywords = ["rag", "chatbot", "korean", "ai", "fastapi"]
+
+dependencies = [
+    # FastAPI and ASGI Server
+    "fastapi==0.104.1",
+    "uvicorn[standard]==0.24.0",
+    "python-multipart==0.0.6",
+    # HTTP Client (requests 제거, httpx만 사용)
+    "httpx>=0.23.0,<1",
+    # WebSocket Support
+    "websockets==12.0",
+    # PostgreSQL Support (평가 시스템용)
+    "sqlalchemy[asyncio]==2.0.23",
+    "asyncpg>=0.29.0,<1",
+    "alembic==1.13.0",
+    # MongoDB Support (검색 및 문서 저장용)
+    "pymongo>=4.0.0",
+    "motor>=3.0.0",
+    # AI and ML Libraries (안정적인 버전 고정)
+    "google-generativeai>=0.6.0,<1",
+    "anthropic>=0.16.0,<1",
+    "openai>=1.10.0,<2",
+    "cohere==4.37",
+    # Document Processing
+    "pypdf>=5.0.0,<7",  # 5.x+: ARC4 deprecation 경고 수정됨
+    "python-docx==1.1.0",
+    "openpyxl==3.1.2",
+    "pandas>=2.2.0",
+    "beautifulsoup4==4.12.2",
+    "markdown==3.5.1",
+    "Pillow>=10.0.0,<12", # 이미지 처리 (image_chat.py에서 필요)
+    # LangChain Core (최소 필수만 유지)
+    "langchain>=0.1.0",
+    "langchain-core>=0.1.0",
+    # LLM Integrations (필요한 것만 선택)
+    "langchain-openai>=0.1.1",
+    "langchain-anthropic>=0.1.0",
+    "langchain-google-genai>=0.1.0",
+    # LangSmith for tracing and monitoring
+    "langsmith>=0.0.60",
+    # LangChain Text Splitters (텍스트 분할 유틸리티)
+    "langchain-text-splitters>=0.0.1",
+    # Langfuse for LLM observability and tracing
+    "langfuse>=2.0.0",
+    # Text Processing
+    "tiktoken>=0.7.0",
+    # Enhanced RAG System Dependencies
+    "scikit-learn>=1.3.0",
+    "numpy>=1.26.0,<2",
+    # Configuration and Environment
+    "pyyaml==6.0.1",
+    "python-dotenv==1.0.0",
+    # Session and Caching
+    "cachetools==5.3.0",
+    # Validation and Serialization
+    "pydantic-settings==2.1.0",
+    # Logging and Monitoring
+    "structlog==23.2.0",
+    # Rate Limiting
+    "slowapi==0.1.9",
+    # System monitoring
+    "psutil==5.9.0",
+    "dependency-injector==4.48.2",
+    # Vector Databases
+    "weaviate-client>=4.0.0", # 4.4.0 → 4.18.0: AssertionError phone_value 버그 수정
+    "pylnk3>=0.4.3",
+    "psycopg2-binary>=2.9.11",
+    "playwright==1.45.0",
+    "apscheduler==3.10.4",
+    "lxml==5.3.0",
+    # Korean NLP for PII Detection (spaCy + 한국어 모델)
+    "spacy>=3.7.0",
+    "ko_core_news_sm @ https://github.com/explosion/spacy-models/releases/download/ko_core_news_sm-3.7.0/ko_core_news_sm-3.7.0-py3-none-any.whl",
+    "networkx>=3.6.1",
+    "neo4j>=5.15.0",  # Neo4j 그래프 데이터베이스 드라이버
+    "chardet>=5.2.0",
+    "pinecone>=7.0.1",
+    "chromadb>=0.5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.3",
+    "pytest-asyncio>=0.21.1",
+    "pytest-cov>=4.1.0",
+    "black>=23.12.0",
+    "ruff>=0.1.9",
+    "mypy>=1.8.0",
+    "ipython>=8.19.0",
+]
+
+monitoring = [
+    "prometheus-client>=0.19.0",
+]
+
+security = [
+    "bcrypt>=4.1.2",
+    "python-jose[cryptography]>=3.3.0",
+]
+
+redis = [
+    "redis>=5.0.1",
+]
+
+ragas = [
+    "ragas>=0.1.0,<0.2.0",  # 0.4+ 버전은 langchain 충돌
+    "datasets>=2.14.0",  # Ragas 의존성
+]
+
+# Multi Vector DB 선택적 의존성 (v3.4.0+)
+chroma = ["chromadb>=0.4.0"]
+pinecone = ["pinecone-client>=3.0.0"]
+qdrant = ["qdrant-client>=1.7.0"]
+pgvector = ["pgvector>=0.2.0"]
+all-vectordb = [
+    "chromadb>=0.4.0",
+    "pinecone-client>=3.0.0",
+    "qdrant-client>=1.7.0",
+    "pgvector>=0.2.0",
+]
+
+[project.scripts]
+rag-chatbot = "main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+include = [
+    "app/**/*.py",
+    "main.py",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.uv]
+dev-dependencies = [
+    "mypy>=1.17.1",
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.1.0",
+    "pytest-cov>=6.2.1",
+    "pytest-timeout>=2.3.1",
+    "ruff>=0.12.8",
+    "types-cachetools>=6.2.0.20251022",
+    "types-pyyaml>=6.0.12.20250915",
+    # Dependency Management (v3.1.0+)
+    "import-linter>=2.1",  # 순환 참조 및 계층 규칙 검증
+    "pydeps>=1.12.21",  # 의존성 시각화
+    "respx>=0.22.0",
+]
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "C",  # flake8-comprehensions
+    "B",  # flake8-bugbear
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+    "B904",  # exception chaining (보안: HTTPException에 원본 에러 노출 방지)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"main.py" = ["E402"]  # .env 로드를 위해 import가 파일 상단이 아님
+"scripts/**/*.py" = ["E402"]  # 스크립트는 sys.path 조작 필요
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+exclude = ["scripts/"]
+# 엄격 모드 설정 (2025-11-29 활성화)
+check_untyped_defs = true
+disallow_untyped_defs = true  # 모든 함수에 타입 힌트 필수
+disallow_incomplete_defs = true  # 부분적 타입 힌트 금지
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+show_error_codes = true
+strict_optional = true
+
+# 모듈별 점진적 적용 (각 모듈별로 개별 설정)
+[[tool.mypy.overrides]]
+module = [
+    "app.lib.types",
+    "app.lib.llm_client",
+    "app.api.services.chat_service",
+    "app.api.services.rag_pipeline",
+    "app.modules.core.retrieval.orchestrator",
+]
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = [
+    "legacy.*",
+    "archive.*",
+]
+ignore_errors = true
+
+# 엄격 모드 제외 모듈: 외부 인터페이스 및 설정 관련 (2025-12-01)
+# 이 모듈들은 외부 라이브러리 의존성이 높아 타입 추론이 어려움
+[[tool.mypy.overrides]]
+module = [
+    # 테스트 파일 - pytest fixture 및 mock 의존 (타입 추론 복잡)
+    "tests.*",
+    # 배치 처리 모듈 - 크롤러 관련 (외부 라이브러리 의존)
+    "app.batch.*",
+    # API 라우터 - FastAPI 엔드포인트 (FastAPI 타입 추론 복잡)
+    "app.api.*",
+    # 미들웨어 (FastAPI/Starlette 의존)
+    "app.middleware.*",
+    # 데이터베이스 레이어 (SQLAlchemy/Motor 의존)
+    "app.database.*",
+    # 설정 스키마 - Pydantic 기반 (이미 타입 안전)
+    "app.config.*",
+    # 모델 정의 - Pydantic 기반 (이미 타입 안전)
+    "app.models.*",
+    # DI 컨테이너 (dependency-injector 라이브러리 의존)
+    "app.core.*",
+    # 세션 관리 (MongoDB/Redis 의존)
+    "app.modules.core.session.*",
+    # enrichment (외부 LLM 의존)
+    "app.modules.core.enrichment.*",
+    # tools (외부 API 호출)
+    "app.modules.core.tools.*",
+]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+warn_return_any = false
+ignore_errors = true
+
+# 엄격 모드 적용 모듈: 핵심 데이터 처리 로직 (2025-12-01 확장)
+# 타입 에러 발생 가능성이 높고, 데이터 무결성이 중요한 모듈
+[[tool.mypy.overrides]]
+module = [
+    # 기존 Phase 1 모듈
+    "app.modules.core.privacy.*",
+    "app.modules.core.self_rag.*",
+    # 유틸리티 라이브러리 - 공통 타입 정의
+    "app.lib.*",
+    # 검색 파이프라인 - RAG 핵심 데이터 흐름
+    "app.modules.core.retrieval.orchestrator",
+    "app.modules.core.retrieval.interfaces",
+    "app.modules.core.retrieval.query_expansion.*",
+    "app.modules.core.retrieval.retrievers.*",
+    "app.modules.core.retrieval.rerankers.*",
+    "app.modules.core.retrieval.bm25.*",
+    "app.modules.core.retrieval.cache.*",
+    # 답변 생성 - LLM 응답 처리
+    "app.modules.core.generation.*",
+    # 문서 처리 - 파싱/청킹 데이터 변환
+    "app.modules.core.documents.*",
+    # 임베딩 - 벡터 데이터 처리
+    "app.modules.core.embedding.*",
+    # 라우팅 - 쿼리 분류 로직
+    "app.modules.core.routing.*",
+]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_return_any = true
+# 로컬 mypy와 pre-commit mypy 버전 차이로 인한 unused-ignore 에러 방지
+warn_unused_ignores = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-ra -q --strict-markers --tb=short"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "basic: marks tests as basic functionality tests",
+    "unit: marks tests as unit tests",
+    "system: marks tests that require system Python environment",
+    "e2e: marks tests as end-to-end tests with real APIs (costs money, slower)",
+    "eval: marks tests as evaluation tests for CI/CD quality gates",
+]
+
+# Test discovery patterns
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore::UserWarning:pytest_asyncio.*",
+]
+
+# Asyncio configuration
+asyncio_mode = "auto"
+
+# Coverage settings for pytest-cov
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "*/tests/*", 
+    "*/test_*.py",
+    "*/.venv/*",
+    "*/.venv_system/*",
+    "*/venv/*"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "pass",
+    "\\.\\.\\.",
+]
+show_missing = true
+precision = 2
+

@@ -1,0 +1,160 @@
+# Dynamic Routing Rules Configuration V2
+# 배포 없이 실시간으로 라우팅 규칙 수정 가능
+# DynamicRuleManager와 함께 사용
+# v1 (routing_rules.yaml) 통합 완료 버전
+
+rules:
+  # ========================================
+  # Priority 1: 보안/안전성 규칙
+  # ========================================
+
+  # 보안 관련 규칙
+  security:
+    keywords:
+      ko: [보안, 해킹, 취약점, 공격, 침입, 악성코드, 바이러스]
+      en: [security, hack, vulnerability, attack, intrusion, malware, virus]
+    action: "security_check"
+    priority: 1
+    description: "보안 관련 쿼리 탐지"
+
+  # 유해 컨텐츠 규칙
+  harmful:
+    keywords:
+      ko: [욕설, 비방, 혐오, 차별, 폭력]
+      en: [abuse, hate, discrimination, violence]
+    action: "block"
+    priority: 1
+    description: "유해 컨텐츠 차단"
+
+  # 프롬프트 인젝션 탐지
+  prompt_injection:
+    keywords:
+      ko: [무시해, 잊어버려, 시스템 프롬프트, 역할 변경, 이전 지시, 이전 명령]
+      en: [ignore, forget, system prompt, role change, previous instructions]
+    patterns:
+      - '이전\s*(지시|명령|프롬프트).*무시'
+      - '시스템\s*프롬프트.*보여'
+      - 'ignore\s+(previous|all)\s+instructions'
+    action: "block"
+    priority: 1
+    response:
+      ko: "죄송합니다. 요청하신 내용은 처리할 수 없습니다."
+      en: "Sorry, I cannot process that request."
+    description: "프롬프트 인젝션 시도 차단"
+
+  # ========================================
+  # Priority 2: 범위 확장 규칙
+  # ========================================
+
+  # 범위 확장 규칙
+  scope_expansion:
+    keywords:
+      ko: [전체, 모든, 시스템 전반, 모두]
+      en: [all, entire, everything, system-wide]
+    action: "expand_scope"
+    priority: 2
+    description: "범위 확장 쿼리"
+
+  # ========================================
+  # Priority 3: 인사말 및 감사 표현
+  # ========================================
+
+  # 인사말 규칙
+  greeting:
+    keywords:
+      ko: [안녕, 반가워, 처음, 시작, 하이, 헬로]
+      en: [hello, hi, hey, greetings]
+    action: "direct_answer"
+    priority: 3
+    response:
+      ko: "안녕하세요! 무엇을 도와드릴까요?"
+      en: "Hello! How can I assist you?"
+    description: "인사말 즉시 응답"
+
+  # 감사 표현
+  thanks:
+    keywords:
+      ko: [고마워, 감사, 고맙습니다]
+      en: [thanks, thank you]
+    action: "direct_answer"
+    priority: 3
+    response:
+      ko: "도움이 되셨다니 기쁩니다! 추가로 궁금하신 점이 있으시면 언제든 물어보세요."
+      en: "You're welcome!"
+    description: "감사 표현 즉시 응답"
+
+  # ========================================
+  # Priority 5: 범위 이탈 규칙
+  # ========================================
+
+  # 범위 이탈 쿼리 차단
+  out_of_scope:
+    keywords:
+      ko:
+        - 날씨
+        - 주식
+        - 코인
+        - 비트코인
+        - 암호화폐
+      en:
+        - weather
+        - stock
+        - bitcoin
+        - cryptocurrency
+    action: "direct_answer"
+    priority: 5
+    response:
+      ko: "죄송합니다. 해당 질문은 서비스 범위를 벗어납니다. 서비스 관련 질문에 답변해드릴 수 있습니다."
+      en: "Sorry, that question is out of scope for our service."
+    description: "서비스 범위 외 쿼리 차단"
+
+  # ========================================
+  # Priority 7: 도메인별 RAG 라우팅 (도메인 템플릿)
+  # 사용자가 목적에 맞게 아래 섹션을 수정하거나 추가하세요.
+  # ========================================
+
+  # 도메인 카테고리 1 (예시)
+  domain_category_1:
+    keywords:
+      ko: [카테고리1, 항목1]
+      en: [category1, item1]
+    action: "rag"
+    priority: 7
+    domain: "domain_1"
+    intent: "inquiry"
+    description: "도메인 카테고리 1 관련 쿼리"
+
+  # 도메인 카테고리 2 (예시)
+  domain_category_2:
+    keywords:
+      ko: [카테고리2, 항목2]
+      en: [category2, item2]
+    action: "rag"
+    priority: 7
+    domain: "domain_2"
+    intent: "inquiry"
+    description: "도메인 카테고리 2 관련 쿼리"
+
+  # ========================================
+  # Priority 10: 일반 RAG 쿼리
+  # ========================================
+
+  # 일반 RAG 쿼리
+  general_rag:
+    keywords:
+      ko: [찾아줘, 알려줘, 검색, 질문, 무엇, 어떻게]
+      en: [find, search, tell, question, what, how]
+    action: "rag"
+    priority: 10
+    description: "일반 RAG 파이프라인 라우팅"
+
+# 규칙 처리 설정
+settings:
+  default_action: "rag"
+  case_sensitive: false
+  partial_match: true
+  auto_reload_interval: 300  # 5분마다 자동 리로드
+  # 복합 쿼리 탐지를 위한 서비스 핵심 키워드 (인사말과 섞여 들어올 때 LLM 라우터로 토스하기 위함)
+  service_keywords:
+    ko: [비용, 가격, 요금, 예약, 신청, 결제, 장애, 오류, 설치, 방법, 메뉴얼, 가이드, 사양, 성능]
+    en: [cost, price, reservation, payment, error, bug, installation, guide, manual, specification, performance]

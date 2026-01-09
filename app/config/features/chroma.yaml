@@ -1,0 +1,30 @@
+# Chroma Vector Database 설정
+# 기능: 경량 벡터 검색 (Dense only), 로컬 개발 및 테스트 최적화
+# 사용: Collection 관리, 문서 저장 및 검색
+# 참고: 하이브리드 검색(BM25) 미지원
+
+chroma:
+  # 저장 모드 설정
+  # persist_directory: None이면 in-memory (휘발성)
+  # persist_directory: 경로 지정 시 파일 기반 영구 저장
+  persist_directory: "${CHROMA_PERSIST_DIRECTORY:}"
+
+  # 원격 서버 연결 (선택적)
+  # host가 설정되면 HttpClient 모드로 전환
+  host: "${CHROMA_HOST:}"
+  port: "${CHROMA_PORT:-8000}"
+
+  # Collection name (기본 documents)
+  collection_name: "${CHROMA_COLLECTION:-documents}"
+
+  # 검색 설정
+  search:
+    # 기본 검색 결과 수
+    default_top_k: 10
+    # 하이브리드 검색: 미지원 (Dense only)
+    hybrid_support: false
+
+  # 성능 설정
+  performance:
+    # 배치 저장 시 청크 크기
+    batch_size: 100

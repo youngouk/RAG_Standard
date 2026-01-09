@@ -1,0 +1,30 @@
+[importlinter]
+root_packages =
+    app
+
+[importlinter:contract:layered_architecture]
+name = Layered Architecture
+type = layers
+layers =
+    app.api
+    app.modules
+    app.infrastructure
+    app.lib
+
+[importlinter:contract:services_use_orchestrators]
+name = Services should use Orchestrators
+type = forbidden
+source_modules =
+    app.api.services
+forbidden_modules =
+    app.modules.core.retrieval.retrievers
+    app.modules.core.retrieval.rerankers
+    app.modules.core.retrieval.cache
+
+[importlinter:contract:lib_no_modules]
+name = Library layer cannot depend on domain modules
+type = forbidden
+source_modules =
+    app.lib
+forbidden_modules =
+    app.modules

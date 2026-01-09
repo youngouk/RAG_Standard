@@ -1,0 +1,101 @@
+# Langfuse LLM Observability 설정
+# 기능: RAG 파이프라인 추적, 모니터링, 평가
+# 공식 문서: https://langfuse.com/docs
+
+langfuse:
+  # 활성화 여부
+  enabled: ${LANGFUSE_ENABLED:-true}
+
+  # Langfuse 서버 연결
+  host: ${LANGFUSE_HOST:-http://localhost:3001}
+  public_key: ${LANGFUSE_PUBLIC_KEY}  # 필수
+  secret_key: ${LANGFUSE_SECRET_KEY}  # 필수
+
+  # 추적 설정
+  tracing:
+    # RAG 파이프라인 추적
+    rag_pipeline: true
+
+    # 쿼리 확장 추적 (GPT-5)
+    query_expansion: true
+
+    # 벡터 검색 추적 (Weaviate)
+    retrieval: true
+
+    # 답변 생성 추적 (Gemini)
+    generation: true
+
+    # Self-RAG 평가 추적
+    self_rag_evaluation: true
+
+  # 성능 설정
+  performance:
+    # 비동기 전송 (성능 향상)
+    async_enabled: true
+
+    # 배치 크기 (한 번에 전송할 이벤트 수)
+    batch_size: 10
+
+    # 플러시 간격 (초)
+    flush_interval: 5
+
+  # 샘플링 설정
+  sampling:
+    # 전체 Trace 샘플링 비율 (0.0-1.0)
+    # 1.0 = 100% 추적, 0.1 = 10% 추적
+    rate: ${LANGFUSE_SAMPLING_RATE:-1.0}
+
+  # 메타데이터
+  metadata:
+    # 환경 태그 (dev, staging, production)
+    environment: ${ENVIRONMENT:-development}
+
+    # 버전 정보
+    app_version: "3.0.0"
+
+    # 추가 태그
+    tags:
+      - "rag"
+      - "korean"
+      - "weaviate"
+      - "gemini"
+
+  # 프롬프트 관리
+  prompts:
+    # 프롬프트 버전 관리 활성화
+    versioning: true
+
+    # 관리할 프롬프트 목록
+    tracked_prompts:
+      - "query_expansion"
+      - "answer_generation"
+      - "self_rag_evaluation"
+
+  # 평가 설정
+  evaluation:
+    # Self-RAG 점수를 Langfuse Score로 기록
+    self_rag_scores: true
+
+    # 평가 메트릭
+    metrics:
+      - "relevance"
+      - "groundedness"
+      - "completeness"
+
+  # 디버그 설정
+  debug:
+    # 로컬 개발 시 상세 로그
+    verbose: ${LANGFUSE_DEBUG:-false}
+
+    # Trace ID를 응답에 포함
+    include_trace_id: true
+
+  # 오류 처리
+  error_handling:
+    # Langfuse 오류 시 RAG 파이프라인 계속 실행
+    fail_silently: true
+
+    # 재시도 설정
+    retry:
+      max_attempts: 3
+      backoff_multiplier: 2

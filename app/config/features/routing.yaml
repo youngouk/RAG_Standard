@@ -1,0 +1,93 @@
+# 쿼리 라우팅 설정
+# 기능: 사용자 쿼리를 분석하여 적절한 처리 경로 선택
+# 사용: Rule-based 및 OpenRouter 통합 LLM 기반 라우터 설정
+
+# Query Routing Configuration (RootConfig 필수 필드)
+# LLMQueryRouter가 참조하는 설정 (llm_query_router.py:134-135)
+query_routing:
+  # Phase 2: LLM 라우터 활성화
+  # 정형 데이터 질문 (비용 비교, 최대/최소 등)을 SQL 우선 처리
+  enabled: true
+  llm_router:
+    enabled: true  # 🆕 LLM 라우터 활성화 (필수)
+    provider: "openrouter"
+    model: "google/gemini-2.5-flash-lite"
+    temperature: 0.0
+    max_tokens: 1024
+  cache_ttl: 3600
+  # 즉시 응답 설정 (인사말, 범위 외 질문)
+  direct_answer:
+    enabled: true
+  
+  # ========================================
+  # A경로: 업체규정 검색 (노션 우선)
+  # Phase 2 PRD 요구사항: 특정 업체 질문 시 노션 90% 비중
+  # ========================================
+  data_source_routing:
+    enabled: true  # false로 변경 시 즉시 비활성화 (롤백)
+    
+    # ⚠️ [DEPRECATED] score_multipliers는 rag.yaml의 scoring 섹션으로 이관됨 (2026-01-02)
+    # 
+    # 새로운 설정 위치: app/config/features/rag.yaml
+    # 
+    # scoring:
+    #   collection_weight_enabled: true   # 활성화
+    #   collection_weights:
+    #     NotionMetadata: 1.5             # 메타데이터 50% 부스트
+    #     Documents: 1.0
+    #   file_type_weight_enabled: true    # 파일 타입별 가중치 (선택)
+    #   file_type_weights:
+    #     PDF: 1.2
+    #     TXT: 1.1
+    #
+    # 마이그레이션 가이드: DOMAIN_CUSTOMIZATION_GUIDE.md 참조
+    
+    # 기본값 (LLM 응답 없거나 오류 시)
+    default_data_source: "general"
+    
+    # 디버깅 및 모니터링
+    log_score_changes: true  # 스코어 조정 전후 로그 출력
+    log_collection_stats: true  # 컬렉션별 통계 로그
+
+routing:
+  enabled: true
+  default_route: "rag"
+  timeout_seconds: 10
+
+  rule_based:
+    enabled: true
+
+  # ========================================
+  # OpenRouter 통합 LLM 라우터 설정
+  # ========================================
+  # 정확도 우선 - 낮은 temperature로 일관된 라우팅
+
+  llm_router:
+    enabled: true  # Phase 2: LLM 라우터 활성화
+
+    # OpenRouter 게이트웨이 사용
+    provider: "openrouter"
+
+    # 경량 모델 - 빠른 라우팅 판단
+    # Gemini 2.5 Flash Lite - 초경량 빠른 응답
+    model: "google/gemini-2.5-flash-lite"
+
+    # API 설정 (OpenRouter 단일 키)
+    api_key: "${OPENROUTER_API_KEY:-}"
+
+    # 요청 파라미터
+    temperature: 0.2  # 정확도 우선 (낮은 온도)
+    max_tokens: 300
+    timeout: 10
+
+    # 레거시 파라미터 (OpenAI 호환용)
+    verbosity: "low"  # 빠른 판단
+
+    # Fallback 설정
+    defaults:
+      verbosity: "low"
+      temperature: 0.2
+
+  complexity:
+    simple_threshold: 0.3
+    moderate_threshold: 0.6

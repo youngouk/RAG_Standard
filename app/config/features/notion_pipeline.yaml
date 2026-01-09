@@ -1,0 +1,138 @@
+# =============================================================================
+# 통합 메타데이터 파이프라인 설정
+#
+# Notion API → Weaviate + PostgreSQL 동시 저장 파이프라인
+#
+# 관련 파일:
+#   - app/batch/unified_pipeline.py
+#   - app/batch/weaviate_loader.py
+#   - app/batch/postgres_loader.py
+#
+# 작성일: 2025-12-03
+# =============================================================================
+
+notion_pipeline:
+  # 활성화 여부
+  enabled: true
+
+  # ==========================================================================
+  # Notion API 설정
+  # ==========================================================================
+  notion:
+    # API 키 (환경변수 우선)
+    api_key: ${NOTION_API_KEY:-}
+
+    # API 버전
+    api_version: "2022-06-28"
+
+    # 요청 타임아웃 (초)
+    timeout: 30
+
+    # Rate Limit 재시도
+    max_retries: 5
+    base_delay: 1.0
+
+  # ==========================================================================
+  # 카테고리별 Notion DB ID
+  #
+  # 향후 DB ID 변경 시 이 섹션만 수정
+  # ==========================================================================
+  categories:
+    category_1:
+      db_id: "00000000-0000-0000-0000-000000000000"
+      category_name: "카테고리1"
+      source_file: "notion_category_1"
+      enabled: true
+
+    category_2:
+      db_id: "00000000-0000-0000-0000-000000000000"
+      category_name: "카테고리2"
+      source_file: "notion_category_2"
+      enabled: true
+
+  # ==========================================================================
+  # Weaviate 설정 (NotionMetadata 컬렉션)
+  # ==========================================================================
+  weaviate:
+    # 활성화 여부
+    enabled: true
+
+    # Weaviate 서버 URL (환경변수 우선)
+    url: ${WEAVIATE_URL:-https://weaviate-production-70aa.up.railway.app}
+
+    # 컬렉션 이름 (기존 Documents와 분리)
+    collection_name: "NotionMetadata"
+
+    # 배치 업로드 설정
+    batch_size: 100
+    upload_timeout: 120
+
+    # 기존 데이터 삭제 후 업로드 (중복 방지)
+    delete_before_upload: true
+
+  # ==========================================================================
+  # PostgreSQL 설정 (메타데이터 테이블)
+  # ==========================================================================
+  postgres:
+    # 활성화 여부
+    enabled: true
+
+    # 연결 URL (환경변수 우선)
+    database_url: ${DATABASE_URL:-}
+
+    # Connection Pool 설정
+    pool_min_size: 2
+    pool_max_size: 10
+
+    # 테이블 매핑
+    tables:
+      category_1: "category_1_metadata"
+      category_2: "category_2_metadata"
+      sync_log: "metadata_sync_logs"
+
+  # ==========================================================================
+  # 청킹 설정
+  # ==========================================================================
+  chunking:
+    # 최대 청크 크기 (문자 수, 약 1000 토큰)
+    max_chunk_chars: 2000
+
+    # 오버랩 크기 (문자 수, 약 150 토큰)
+    overlap_chars: 300
+
+    # 청킹 대상 필드
+    target_fields:
+      - "내용"
+      - "규정"
+      - "상세"
+      - "구성"
+      - "기타"
+
+  # ==========================================================================
+  # 배치 실행 설정
+  # ==========================================================================
+  batch:
+    # 스케줄 (cron 표현식)
+    # 매일 새벽 2시 실행
+    schedule: "0 2 * * *"
+
+    # 시작 시 실행 여부
+    run_on_startup: ${RUN_NOTION_PIPELINE_ON_STARTUP:-false}
+
+    # 재시도 설정
+    max_retries: 3
+    retry_delay: 60
+
+    # 알림 설정 (Slack 등)
+    notify_on_success: false
+    notify_on_failure: true
+
+  # ==========================================================================
+  # 로깅 설정
+  # ==========================================================================
+  logging:
+    # 상세 로깅 활성화
+    verbose: ${NOTION_PIPELINE_VERBOSE:-false}
+
+    # 동기화 로그 보관 기간 (일)
+    sync_log_retention_days: 30

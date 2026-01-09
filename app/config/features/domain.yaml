@@ -1,0 +1,147 @@
+domain:
+  # 1. 개인정보 보호 설정 (Privacy)
+  privacy:
+    whitelist:
+      - "서비스"
+      - "문의"
+      - "안내"
+      - "확인"
+      - "추천"
+      - "담당"
+      - "고객"
+      - "가족"
+      - "친구"
+      - "사진"
+      - "영상"
+      - "음향"
+      - "조명"
+    # 이름 마스킹을 위한 호칭 패턴
+    name_suffixes:
+      - "고객님"
+      - "담당자님?"
+
+  # 2. 검색 엔진 설정 (Retrieval)
+  retrieval:
+    stopwords:
+      - "문의"
+      - "안내"
+      - "확인"
+      - "추천"
+      - "후기"
+    
+    # 사용자 사전 (분리 방지 단어)
+    user_dictionary:
+      - "사용자정의1"
+      - "사용자정의2"
+
+    # 동의어 사전 설정
+    synonyms:
+      csv_path: "app/config/synonyms.csv"
+      enabled: false
+
+    # Weaviate 컬렉션별 리턴 프로퍼티
+    collections:
+      Documents:
+        properties:
+          - "content"
+          - "source"
+          - "created_at"
+          - "source_file"
+          - "file_type"
+          - "keywords"
+      NotionMetadata:
+        properties:
+          - "content"
+          - "source_field"
+          - "chunk_index"
+
+  # 3. 데이터 배치 설정 (Batch)
+  batch:
+    categories:
+      domain_1:
+        db_id: "default-db-id-1"
+        category_name: "도메인1"
+        source_file: "source_1"
+      domain_2:
+        db_id: "default-db-id-2"
+        category_name: "도메인2"
+        source_file: "source_2"
+    
+    # 청킹 섹션 분류 키워드
+    section_keywords:
+      "규정": ["규정", "원칙", "가이드라인"]
+      "비용": ["비용", "가격", "원", "만원"]
+      "위치": ["위치", "주소", "주차"]
+    
+    # 청킹 대상 필드
+    target_fields:
+      - "내용"
+      - "설명"
+
+  # 4. 메타데이터 스키마 설정 (Metadata Schema)
+  metadata:
+    schema:
+      required_fields: ["name"]
+      numeric_fields:
+        - "price"
+        - "cost"
+      boolean_fields:
+        - "is_active"
+      field_aliases:
+        "Name": "이름"
+        "Phone": "전화번호"
+        "Category": "분류"
+        "Location": "위치"
+
+  # 5. SQL 검색 설정 (SQL Search)
+  sql_search:
+    tables:
+      - "metadata_table"
+    numeric_fields:
+      - "price"
+      - "cost"
+
+  # 6. 라우터 설정 (Router)
+  router:
+    domain_name: "general_service"
+    messages:
+      greeting: "안녕하세요! 👋 무엇을 도와드릴까요?"
+      farewell: "안녕히 가세요! 이용해 주셔서 감사합니다."
+      thanks: "도움이 되셨다니 기쁩니다! 😊 더 궁금하신 점이 있으시면 언제든 물어보세요!"
+      default_greeting: "안녕하세요! 궁금한 점을 말씀해주세요."
+      out_of_scope: |
+        죄송합니다. 해당 질문은 서비스 범위를 벗어납니다. 🙏
+        서비스 관련 질문을 해주시면 도와드리겠습니다!
+
+    system_role: "전문 서비스 지원 챗봇의 쿼리 분석 전문가"
+    domain_description: "사용자의 질문에 대해 보유한 지식 베이스를 바탕으로 정확한 답변을 제공합니다."
+    
+    # RAG 검색이 필요한 카테고리 정의
+    rag_categories:
+      - name: "정보 검색"
+        description: "구체적인 정보 요청"
+      - name: "절차 안내"
+        description: "이용 방법 및 절차 문의"
+
+    # 데이터 소스 판단 로직 (Notion vs General)
+    data_sources:
+      notion:
+        description: "구조화된 메타데이터 우선"
+        triggers:
+          entities: []
+          keywords: ["가격", "비용", "규정"]
+      
+      general:
+        description: "일반 문서 정보 우선"
+        triggers:
+          keywords: ["추천", "방법", "안내"]
+      
+      both:
+        description: "혼합 검색"
+        triggers:
+          keywords: ["후기", "비교"]
+
+    # 범위 이탈 예시
+    out_of_scope_examples:
+      - "오늘 날씨 어때?"
+      - "주식 투자 추천해줘"

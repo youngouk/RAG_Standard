@@ -1,0 +1,106 @@
+# Self-RAG 설정
+# 기능: 답변 생성 후 품질 평가 및 재검색을 통한 자기 개선형 RAG
+# 사용: 복잡도 기반 라우팅, 품질 평가, 재생성 제어, 모니터링 설정
+# LLM: OpenRouter 통합 게이트웨이 사용
+
+self_rag:
+  # 1. Feature Flag 설정
+  # ⭐ 품질 게이트 활성화 (저품질 답변 거부)
+  enabled: true  # Self-RAG 기능 활성화 (품질 게이트 포함)
+
+  # 2. 복잡도 기반 라우팅 설정
+  complexity_threshold: 0.5  # 0.5 이상: Self-RAG 적용 | 0.5 미만: 일반 RAG (테스트용 임시 설정)
+  # 복잡도 계산식: (길이 점수 × 0.3) + (깊이 점수 × 0.4) + (다중 의도 × 0.3)
+  # 예상 분포: 70% 일반 RAG | 15% Self-RAG | 15% 단순 쿼리
+
+  # 3. 품질 평가 설정
+  quality_threshold: 0.8  # 0.8 미만 시 재생성 트리거 (lenient 설정)
+  # 평가 차원: relevance(관련성), grounding(근거성), completeness(완전성), confidence(신뢰도)
+  # 각 차원 0.0-1.0 점수 → 평균으로 최종 품질 점수 계산
+
+  # ⭐ 품질 게이트 설정 (저품질 답변 거부)
+  min_quality_to_answer: 0.6  # 최소 품질 임계값 (0.6 미만 시 답변 거부)
+
+  # 4. 재생성 제어 설정
+  max_iterations: 1  # 최대 재생성 횟수 (1회로 제한하여 비용 통제)
+  enable_rollback: true  # 재생성 품질 저하 시 원본 답변 반환
+  rollback_threshold: -0.1  # 재생성 품질이 원본보다 0.1 이상 낮으면 롤백
+
+  # 5. 평가 모듈 설정 (OpenRouter 통합)
+  evaluation:
+    # OpenRouter 게이트웨이 사용
+    provider: "openrouter"
+
+    # 경량 평가 모델 (비용 효율적)
+    # Gemini 2.5 Flash Lite - 빠르고 저렴한 평가
+    model: "google/gemini-2.5-flash-lite"
+
+    # API 키 설정 (OpenRouter 단일 키)
+    api_key: "${OPENROUTER_API_KEY:-}"
+
+    # 평가 요청 파라미터
+    temperature: 0.0  # 일관성을 위해 0으로 고정
+    max_tokens: 500  # 평가 응답은 짧으므로 500 토큰 충분
+    timeout: 10  # 평가 타임아웃 (초)
+
+    # 재시도 설정 (Exponential Backoff)
+    max_retries: 3  # 최대 재시도 횟수
+    retry_delay: 0.5  # 초기 재시도 대기 시간 (초)
+    retry_exponential_base: 2  # 지수 백오프 배수
+
+    # 평가 캐싱 설정
+    enable_caching: false  # 평가 결과 캐싱 비활성화 (정확도 우선)
+    # 캐싱 비활성화 이유: 동일 쿼리라도 컨텍스트/답변이 다를 수 있어 정확도 저하 우려
+
+  # 6. 재검색 전략 설정 (Re-Retrieval Strategy)
+  re_retrieval:
+    strategy: "issue_based"  # 평가 결과의 issues 필드 기반 재검색
+    # issue_based: 평가에서 지적된 구체적 문제점으로 쿼리 정제
+    # query_expansion: 원본 쿼리 확장 (미사용)
+    # hybrid: 두 전략 병행 (미사용)
+
+    max_additional_docs: 5  # 재검색 시 추가 문서 최대 개수
+    min_relevance_score: 0.05  # 재검색 문서 최소 관련성 점수
+    merge_strategy: "append"  # 기존 문서에 추가 문서 병합 방식 (append | replace)
+
+  # 7. 응답 모드 설정
+  response_mode: "batch"  # 응답 방식: batch(일괄) | streaming(스트리밍, Phase 2)
+  # batch: 모든 평가/재생성 완료 후 최종 답변 반환
+  # streaming: 중간 과정도 점진적으로 전송 (향후 구현)
+
+  # 8. 모니터링 및 메트릭 설정
+  monitoring:
+    enable_metrics: true  # 메트릭 수집 활성화
+    log_evaluations: true  # 평가 결과 로깅 활성화 (디버깅/분석용)
+    log_level: "INFO"  # 로그 레벨: DEBUG | INFO | WARNING | ERROR
+
+    # 추적할 메트릭 항목
+    tracked_metrics:
+      - "complexity_distribution"  # 쿼리 복잡도 분포
+      - "quality_scores"  # 품질 점수 분포
+      - "regeneration_rate"  # 재생성 비율
+      - "improvement_delta"  # 재생성 품질 개선도
+      - "evaluation_time"  # 평가 소요 시간
+      - "total_processing_time"  # 전체 처리 시간
+      - "cost_per_query"  # 쿼리당 비용
+
+    # 메트릭 저장 설정 (Redis 사용)
+    metrics_storage:
+      enabled: true  # 메트릭 영구 저장 활성화
+      backend: "redis"  # redis | memory | postgres
+      redis_key_prefix: "self_rag_metrics:"  # Redis 키 접두사
+      retention_days: 30  # 메트릭 보관 기간 (일)
+
+  # 9. 비용 제어 설정
+  cost_control:
+    enable_budget_limit: false  # 일일 비용 제한 활성화 (프로덕션 권장)
+    daily_budget_usd: 10.0  # 일일 최대 비용 (USD)
+    auto_disable_on_budget_exceeded: false  # 예산 초과 시 자동 비활성화
+    alert_threshold: 0.8  # 예산 80% 도달 시 알림
+
+  # 10. 개발/디버깅 설정
+  development:
+    enable_debug_mode: false  # 디버그 모드 (상세 로그 출력)
+    log_prompts: false  # 평가 프롬프트 전체 로깅 (보안 주의)
+    save_evaluation_history: true  # 평가 히스토리 저장 (분석용)
+    max_history_entries: 1000  # 최대 히스토리 항목 수

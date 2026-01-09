@@ -1,0 +1,278 @@
+# Langfuse Self-hosted 로컬 개발 환경
+# 기능: LLM Observability 플랫폼 - RAG 파이프라인 추적 및 모니터링
+# 사용: docker compose -f docker-compose.langfuse.yml up -d
+
+version: '3.8'
+
+services:
+  # Langfuse Web - UI + API 서버
+  langfuse-web:
+    image: langfuse/langfuse:latest
+    container_name: langfuse-web
+    restart: unless-stopped
+    ports:
+      - "3001:3000"  # 호스트 3001 → 컨테이너 3000 (충돌 방지)
+    environment:
+      # 데이터베이스 연결
+      DATABASE_URL: postgresql://${POSTGRES_USER:-langfuse}:${POSTGRES_PASSWORD:-langfuse_password}@postgres:5432/${POSTGRES_DB:-langfuse}
+      DIRECT_URL: postgresql://${POSTGRES_USER:-langfuse}:${POSTGRES_PASSWORD:-langfuse_password}@postgres:5432/${POSTGRES_DB:-langfuse}
+
+      # ClickHouse 연결 (OLAP)
+      CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-default}
+      CLICKHOUSE_CLUSTER_ENABLED: "false"  # 로컬 단일 노드
+
+      # Redis 연결 (캐시 + 큐)
+      REDIS_CONNECTION_STRING: redis://redis:6379
+
+      # S3/MinIO 연결 (이벤트 스토리지)
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse-events
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: us-east-1
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+
+      # 미디어 업로드 (멀티모달 데이터)
+      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse-media
+      LANGFUSE_S3_MEDIA_UPLOAD_REGION: us-east-1
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+
+      # 배치 Export (선택 사항)
+      LANGFUSE_S3_BATCH_EXPORT_ENABLED: "false"
+
+      # NextAuth 설정 (인증)
+      NEXTAUTH_URL: http://localhost:3001
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}  # openssl rand -base64 32로 생성
+
+      # 암호화
+      SALT: ${SALT}  # openssl rand -base64 32로 생성
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}  # openssl rand -hex 32로 생성
+
+      # 서버 설정
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+
+      # 로그 설정
+      LANGFUSE_LOG_LEVEL: info
+      LANGFUSE_LOG_FORMAT: text
+
+      # 캐시 설정
+      LANGFUSE_CACHE_API_KEY_ENABLED: "true"
+      LANGFUSE_CACHE_API_KEY_TTL_SECONDS: "300"
+      LANGFUSE_CACHE_PROMPT_ENABLED: "true"
+      LANGFUSE_CACHE_PROMPT_TTL_SECONDS: "300"
+
+      # HTTPS 강제 (프로덕션에서만)
+      LANGFUSE_CSP_ENFORCE_HTTPS: "false"
+
+      # 자동 마이그레이션
+      LANGFUSE_AUTO_POSTGRES_MIGRATION_DISABLED: "false"
+      LANGFUSE_AUTO_CLICKHOUSE_MIGRATION_DISABLED: "false"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/api/public/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    networks:
+      - langfuse-network
+
+  # Langfuse Worker - 비동기 이벤트 처리
+  langfuse-worker:
+    image: langfuse/langfuse-worker:latest
+    container_name: langfuse-worker
+    restart: unless-stopped
+    environment:
+      # Langfuse Web과 동일한 환경 변수
+      DATABASE_URL: postgresql://${POSTGRES_USER:-langfuse}:${POSTGRES_PASSWORD:-langfuse_password}@postgres:5432/${POSTGRES_DB:-langfuse}
+      DIRECT_URL: postgresql://${POSTGRES_USER:-langfuse}:${POSTGRES_PASSWORD:-langfuse_password}@postgres:5432/${POSTGRES_DB:-langfuse}
+
+      CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-default}
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
+
+      REDIS_CONNECTION_STRING: redis://redis:6379
+
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse-events
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: us-east-1
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+
+      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse-media
+      LANGFUSE_S3_MEDIA_UPLOAD_REGION: us-east-1
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      SALT: ${SALT}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+
+      PORT: "3030"
+      HOSTNAME: "0.0.0.0"
+
+      LANGFUSE_LOG_LEVEL: info
+      LANGFUSE_LOG_FORMAT: text
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+    networks:
+      - langfuse-network
+
+  # PostgreSQL - 트랜잭션 데이터베이스
+  postgres:
+    image: postgres:15-alpine
+    container_name: langfuse-postgres
+    restart: unless-stopped
+    ports:
+      - "5433:5432"  # 호스트 5433 → 컨테이너 5432 (충돌 방지)
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-langfuse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-langfuse_password}
+      POSTGRES_DB: ${POSTGRES_DB:-langfuse}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-langfuse}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - langfuse-network
+
+  # Redis - 캐시 + 메시지 큐
+  redis:
+    image: redis:7-alpine
+    container_name: langfuse-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"  # 호스트 6380 → 컨테이너 6379 (충돌 방지)
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - langfuse-network
+
+  # ClickHouse - OLAP 데이터베이스 (분석용)
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: langfuse-clickhouse
+    restart: unless-stopped
+    ports:
+      - "8123:8123"  # HTTP
+      - "9002:9000"  # Native TCP (호스트 9002 → 컨테이너 9000)
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-default}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - langfuse-network
+
+  # MinIO - S3 호환 객체 스토리지
+  minio:
+    image: minio/minio:latest
+    container_name: langfuse-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"  # API
+      - "9001:9001"  # Console
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - langfuse-network
+
+  # MinIO 초기화 - 버킷 자동 생성
+  minio-init:
+    image: minio/mc:latest
+    container_name: langfuse-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set langfuse http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin};
+      mc mb langfuse/langfuse-events --ignore-existing;
+      mc mb langfuse/langfuse-media --ignore-existing;
+      echo 'MinIO buckets created successfully';
+      "
+    networks:
+      - langfuse-network
+
+networks:
+  langfuse-network:
+    name: langfuse-local-network
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: langfuse_postgres_data
+  redis_data:
+    name: langfuse_redis_data
+  clickhouse_data:
+    name: langfuse_clickhouse_data
+  clickhouse_logs:
+    name: langfuse_clickhouse_logs
+  minio_data:
+    name: langfuse_minio_data

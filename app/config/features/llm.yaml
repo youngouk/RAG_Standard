@@ -1,0 +1,128 @@
+# LLM 제공자 설정 (OpenRouter 통합)
+# 기능: 모든 LLM 호출을 OpenRouter 게이트웨이로 통합
+# 사용: 단일 API 키로 300+ 모델 접근 (https://openrouter.ai/models)
+
+# ========================================
+# OpenRouter 통합 모드 (단일 게이트웨이)
+# ========================================
+# 모든 LLM 호출을 OpenRouter로 통합하여 관리 단순화
+# 장점:
+#   - 단일 API 키로 다양한 모델 사용
+#   - 통합 청구 및 사용량 관리
+#   - 모델별 fallback 자동 처리
+#   - OpenAI SDK 호환 인터페이스
+
+llm:
+  # 기본 프로바이더 (항상 openrouter)
+  default_provider: "openrouter"
+
+  # 레거시 호환성 (deprecated)
+  providers: ["openrouter"]
+  auto_fallback: true
+  fallback_order: ["openrouter"]
+
+  # ========================================
+  # OpenRouter 설정
+  # ========================================
+  openrouter:
+    # API 설정
+    api_key: "${OPENROUTER_API_KEY:-}"
+    base_url: "https://openrouter.ai/api/v1"
+
+    # 기본 모델 - Gemini 3 Pro Preview (최신 성능)
+    default_model: "google/gemini-3-pro-preview"
+
+    # 공통 설정
+    temperature: 0.3
+    max_tokens: 20000
+    timeout: 120
+
+    # OpenRouter 메타데이터 (선택적)
+    site_url: ""
+    app_name: "RAG-Chatbot"
+
+  # ========================================
+  # 모델별 설정 (OpenRouter 모델 형식)
+  # ========================================
+  # 각 모델의 특성에 맞는 파라미터 오버라이드
+
+  models:
+    # === Anthropic Claude 시리즈 ===
+    "anthropic/claude-sonnet-4-5":
+      description: "Claude Sonnet 4.5 - 균형잡힌 성능과 비용"
+      temperature: 0.2
+      max_tokens: 20000
+      timeout: 120
+
+    "anthropic/claude-3-5-haiku-20241022":
+      description: "Claude 3.5 Haiku - Fallback 모델 (빠르고 저렴)"
+      temperature: 0.3
+      max_tokens: 8000
+      timeout: 60
+
+    # === Google Gemini 시리즈 ===
+    "google/gemini-3-pro-preview":
+      description: "Gemini 3 Pro Preview - 기본 모델 (최신 성능)"
+      temperature: 0.2
+      max_tokens: 20000
+      timeout: 120
+
+    "google/gemini-2.5-flash-lite":
+      description: "Gemini 2.5 Flash Lite - 초경량 빠른 응답"
+      temperature: 0.3
+      max_tokens: 8000
+      timeout: 30
+
+    "google/gemini-2.5-flash":
+      description: "Gemini 2.5 Flash - 빠른 응답"
+      temperature: 0.3
+      max_tokens: 16000
+      timeout: 60
+
+    # === OpenAI GPT 시리즈 ===
+    "openai/gpt-5.1":
+      description: "GPT-5.1 - 최신 추론 모델"
+      # GPT-5는 temperature 고정 (1.0)
+      max_tokens: 20000
+      timeout: 180
+      # GPT-5 전용 파라미터
+      verbosity: "medium"
+      reasoning_effort: "medium"
+
+    "openai/gpt-4.1":
+      description: "GPT-4.1 - 안정적인 범용 모델"
+      temperature: 0.3
+      max_tokens: 16000
+      timeout: 120
+
+  # ========================================
+  # Fallback 모델 순서
+  # ========================================
+  # 기본 모델 실패 시 Claude 3.5 Haiku로 폴백
+  fallback_models:
+    - "anthropic/claude-3-5-haiku-20241022"  # 1순위: Claude 3.5 Haiku (빠르고 저렴)
+
+  # ========================================
+  # 레거시 설정 (deprecated - 제거 예정)
+  # ========================================
+  # 기존 코드 호환을 위해 유지, 새 코드에서는 사용하지 않음
+
+  google:
+    model: "google/gemini-2.5-flash"  # OpenRouter 형식
+    api_key: "${OPENROUTER_API_KEY:-}"
+    temperature: 0.3
+    max_tokens: 20000
+
+  anthropic:
+    model: "anthropic/claude-sonnet-4-5"  # OpenRouter 형식
+    api_key: "${OPENROUTER_API_KEY:-}"
+    temperature: 0.3
+    max_tokens: 20000
+
+  openai:
+    model: "openai/gpt-4.1"  # OpenRouter 형식
+    api_key: "${OPENROUTER_API_KEY:-}"
+    temperature: 0.3
+    max_tokens: 20000
+    verbosity: "medium"
+    reasoning_effort: "medium"

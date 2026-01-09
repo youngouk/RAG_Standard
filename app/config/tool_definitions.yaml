@@ -1,0 +1,227 @@
+# Tool Use 정의 파일
+# LLM이 사용할 수 있는 Tool 목록과 외부 API 호출 정보
+
+version: "1.0.0"
+last_updated: "2025-01-29"
+
+# Tool 카테고리별 그룹화
+categories:
+  - id: "external_api"
+    name: "외부 API 호출"
+    description: "다른 백엔드 시스템의 API를 호출하는 Tool"
+
+  - id: "internal_data"
+    name: "내부 데이터 조회"
+    description: "현재 시스템의 데이터를 조회하는 Tool"
+
+# Tool 정의 목록
+tools:
+  # ============================================
+  # 외부 API Tool: 유저 계정 조회
+  # ============================================
+  - name: "search_user_accounts"
+    display_name: "유저 계정 조회"
+    category: "external_api"
+    description: |
+      사용자 계정을 검색합니다. 이메일, 전화번호, 닉네임, 디바이스ID로 조회 가능합니다.
+      여러 조건을 동시에 사용할 수 있으며, 최소 1개 이상의 검색 조건이 필요합니다.
+
+    # LLM에게 제공할 Tool 스키마 (OpenAI Function Calling 형식)
+    parameters:
+      type: object
+      properties:
+        searchConditions:
+          type: object
+          description: "검색 조건 (최소 1개 이상 필수)"
+          properties:
+            email:
+              type: string
+              description: "이메일 주소로 검색"
+              example: "test@example.com"
+
+            telNumber:
+              type: string
+              description: "전화번호로 검색 (010-1234-5678 또는 01012345678 형식)"
+              example: "01012345678"
+
+            nickname:
+              type: string
+              description: "닉네임으로 검색"
+              example: "홍길동"
+
+            deviceId:
+              type: string
+              description: "기기 ID로 검색"
+              example: "device_abc123"
+
+        context:
+          type: object
+          description: "요청 컨텍스트 정보"
+          properties:
+            requesterId:
+              type: string
+              description: "현재 문의자 유저 ID"
+
+            userChatId:
+              type: string
+              description: "채팅방 ID"
+
+            managerId:
+              type: string
+              description: "상담사 ID"
+
+            language:
+              type: string
+              description: "언어 코드 (ko, en, ja 등)"
+              default: "ko"
+
+            countryCode:
+              type: string
+              description: "국가 코드 (KR, JP, US 등)"
+              default: "KR"
+
+      required: ["searchConditions"]
+
+    # 외부 API 실행 정보
+    execution:
+      type: "external_api"
+      method: "POST"
+      base_url_env: "USER_API_BASE_URL"  # 환경변수에서 가져올 Base URL
+      endpoint: "/api/tools/search-user-accounts"
+
+      # 요청 헤더
+      headers:
+        Content-Type: "application/json"
+        Authorization: "Bearer ${USER_API_TOKEN}"  # 환경변수
+
+      # 타임아웃 및 재시도 설정
+      timeout_ms: 10000
+      retry:
+        max_attempts: 3
+        backoff_strategy: "exponential"  # exponential, linear, fixed
+        initial_delay_ms: 1000
+        max_delay_ms: 5000
+
+      # Circuit Breaker 설정
+      circuit_breaker:
+        enabled: true
+        failure_threshold: 5  # 5회 실패 시 Circuit Open
+        timeout_seconds: 60   # 60초 후 재시도 (Half-Open)
+        success_threshold: 2  # 2회 성공 시 Circuit Close
+
+    # 응답 스키마 (검증용)
+    response_schema:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            totalAccounts:
+              type: integer
+            totalPoints:
+              type: integer
+            accounts:
+              type: array
+              items:
+                type: object
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+
+    # Tool 사용 예시 (문서화)
+    examples:
+      - description: "이메일로 계정 조회"
+        input:
+          searchConditions:
+            email: "test@example.com"
+          context:
+            requesterId: "user123"
+            managerId: "manager456"
+        expected_output:
+          success: true
+          data:
+            totalAccounts: 2
+            accounts:
+              - userId: "user_001"
+                nickname: "홍길동"
+                email: "test@example.com"
+
+      - description: "전화번호로 계정 조회"
+        input:
+          searchConditions:
+            telNumber: "01012345678"
+          context:
+            requesterId: "user123"
+            managerId: "manager456"
+
+    # 메타데이터
+    metadata:
+      version: "1.0.0"
+      author: "Backend Team"
+      created_at: "2025-01-29"
+      last_modified: "2025-01-29"
+      tags: ["external", "user", "account", "search"]
+      status: "active"  # active, deprecated, beta
+
+
+  # ============================================
+  # 내부 Tool 예시: 최근 문서 목록 조회
+  # (향후 확장용 - 주석 처리)
+  # ============================================
+  # - name: "list_recent_documents"
+  #   display_name: "최근 문서 목록"
+  #   category: "internal_data"
+  #   description: |
+  #     최근 업로드된 문서 목록을 조회합니다.
+  #     파일 타입, 업로드 날짜 범위로 필터링 가능합니다.
+  #
+  #   parameters:
+  #     type: object
+  #     properties:
+  #       file_type:
+  #         type: string
+  #         enum: ["pdf", "docx", "xlsx", "txt", "csv"]
+  #       days:
+  #         type: integer
+  #         description: "최근 N일 이내"
+  #         default: 7
+  #       limit:
+  #         type: integer
+  #         default: 10
+  #
+  #   execution:
+  #     type: "internal_function"
+  #     handler: "list_recent_documents"
+
+
+# 글로벌 설정
+settings:
+  # 기본 타임아웃
+  default_timeout_ms: 10000
+
+  # 최대 동시 Tool 실행 수
+  max_concurrent_tools: 3
+
+  # 전역 재시도 설정
+  global_retry:
+    enabled: true
+    max_attempts: 3
+
+  # 로깅 설정
+  logging:
+    log_requests: true
+    log_responses: true
+    log_errors: true
+    include_headers: false  # 보안상 헤더 로깅 비활성화
+
+  # 보안 설정
+  security:
+    validate_ssl: true
+    allow_redirects: false
+    max_redirects: 0

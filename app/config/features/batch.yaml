@@ -1,0 +1,89 @@
+# 배치 크롤링 설정 (Hybrid Mode)
+# ================================
+# 2024-12-04 Notion API 마이그레이션
+#
+# 아키텍처:
+# - Notion 소스: NotionBatchProcessor (Notion API 직접 연동)
+# - 외부 소스: ExternalCrawler (Playwright 유지)
+
+batch:
+  # 배치 실행 모드
+  mode: hybrid  # hybrid | notion_only | external_only
+
+  # 청크 설정
+  chunking:
+    chunk_size: 1000
+    chunk_overlap: 200
+    separators:
+      - "\n\n"
+      - "\n"
+      - ". "
+      - " "
+
+  # Notion API 소스 설정
+  notion:
+    enabled: true
+    # 데이터베이스 ID (카테고리별)
+    databases:
+      # NOTE: 실제 값은 사용자의 Notion Database ID로 교체하세요.
+      domain_1: "${NOTION_DB_ID_DOMAIN_1:-}"
+      domain_2: "${NOTION_DB_ID_DOMAIN_2:-}"
+      domain_3: "${NOTION_DB_ID_DOMAIN_3:-}"
+
+    # Rate Limiting (Notion API 제한)
+    rate_limit:
+      requests_per_second: 3
+      retry_attempts: 3
+      retry_delay_seconds: 1
+
+    # 페이지 처리 옵션
+    page_processing:
+      include_child_pages: true
+      max_depth: 2
+      timeout_seconds: 30
+
+  # 외부 크롤링 소스 설정 (Playwright)
+  external:
+    enabled: true
+    sources:
+      - name: external_source_1
+        url: "https://example.com"
+        content_selector: "main, article, .content"
+        max_depth: 2
+        timeout_seconds: 60
+
+      - name: external_source_2
+        url: "https://example.org"
+        content_selector: "main, article, .content"
+        max_depth: 2
+        timeout_seconds: 60
+
+    # Playwright 옵션
+    playwright:
+      headless: true
+      timeout_ms: 30000
+      wait_for_selector: "body"
+      scroll_delay_ms: 500
+      max_scrolls: 10
+
+  # Weaviate 업로드 설정
+  weaviate:
+    collection_name: "Documents"
+    batch_size: 100
+    # 업로드 전 기존 데이터 삭제 여부
+    delete_before_upload: true
+
+  # PostgreSQL 로그 설정
+  logging:
+    enabled: true
+    log_level: INFO
+    # 실패 로그 에러 메시지 최대 길이
+    max_error_length: 1000
+
+  # 성공률 임계값 (이하 시 실패 처리)
+  success_threshold: 60  # 5개 소스 중 3개 이상 성공 필요
+
+  # 스케줄링 (Railway 자동 실행)
+  schedule:
+    run_on_startup: ${RUN_BATCH_ON_STARTUP:-false}
+    cron: "0 3 * * *"  # 매일 새벽 3시 (KST)

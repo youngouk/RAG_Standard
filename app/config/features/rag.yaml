@@ -1,0 +1,89 @@
+# RAG 파이프라인 설정
+# 기능: 문서 검색, 청킹, 리랭킹 등 RAG 핵심 파라미터 설정
+# 사용: retrieval, document_processing, rag 모듈 설정
+
+# Retrieval Configuration (RootConfig 필수 필드)
+retrieval:
+  max_sources: 8
+  # RRF 점수 범위: 0.01~0.04 (정규화 전)
+  # 0.05 → 모든 문서 필터링됨! 0.01로 완화
+  min_score: 0.01
+  hybrid_alpha: 0.6
+  top_k: 8
+
+rag:
+  enabled: true
+  use_rerank: false
+  reranker_model: "jina"
+  top_k: 8
+  rerank_top_k: 8
+  relevance_threshold: 0.5
+
+  # ⚠️ source_boost는 scoring.file_type_weights로 마이그레이션됨
+  # 자세한 내용은 아래 'scoring' 섹션 참조
+
+  # RRF 점수 정규화 설정 (0~1 범위로 변환, 프론트엔드에서 ×100하여 % 표시)
+  # 참고: RRF 공식 = weight / (rrf_k + rank)
+  score_normalization:
+    enabled: true
+    # RRF 상수 (기본값 60, orchestrator.py와 동일해야 함)
+    rrf_k: 60
+    # 기본 가중치 합 (query_expansion.yaml의 query_weights 합과 일치)
+    # [1.0, 0.8, 0.6, 0.4, 0.2] = 3.0
+    default_weight_sum: 3.0
+    # 출력 범위 (0~1: 프론트엔드에서 ×100하여 퍼센트 표시)
+    min_score: 0
+    max_score: 1
+    # 소수점 자릿수 (0.575 형태로 반환)
+    decimal_places: 3
+
+document_processing:
+  chunk_size: 1400
+  chunk_overlap: 200
+  splitter_type: "recursive"
+  file_types: ["pdf", "txt", "docx", "xlsx", "csv", "html", "md", "json"]
+  semantic_threshold: 0.3
+  target_chunk_size: 1400
+  min_chunk_size: 1100
+  max_chunk_size: 1700
+
+# ==========================================================================
+# 스코어링 시스템 설정 (Scoring System)
+# ==========================================================================
+# 목적: 검색 결과의 가중치를 설정 파일로 제어
+# 원칙: 기본값은 모든 가중치 비활성화 (순수 RRF 점수)
+# 사용: 도메인 특화가 필요한 경우에만 활성화
+#
+# Blank System 철학:
+#   - 기본값(Default)은 모든 가중치가 비활성화
+#   - 도메인 특화가 필요한 사용자만 YAML 설정을 통해 Opt-in으로 활성화
+#   - 기존 source_boost를 대체 (레거시 호환성 유지 후 제거 예정)
+scoring:
+  # -------------------------------------------------------------------------
+  # 컬렉션별 가중치 (Collection Weights)
+  # -------------------------------------------------------------------------
+  # 활성화 시 검색 결과의 출처 컬렉션에 따라 점수에 가중치를 곱함
+  # 예: NotionMetadata 컬렉션 결과를 1.5배 부스트
+  collection_weight_enabled: false
+  
+  collection_weights:
+    NotionMetadata: 1.0
+    Documents: 1.0
+    # 사용자 정의 컬렉션 추가 가능
+    # MyCustomCollection: 1.2
+
+  # -------------------------------------------------------------------------
+  # 파일 타입별 가중치 (File Type Weights)
+  # -------------------------------------------------------------------------
+  # 활성화 시 검색 결과의 파일 타입에 따라 점수에 가중치를 곱함
+  # 예: PDF 문서 결과를 1.1배 부스트
+  # 참고: 기존 source_boost.weights를 대체
+  file_type_weight_enabled: false
+  
+  file_type_weights:
+    TXT: 1.0
+    PDF: 1.0
+    XLSX: 1.0
+    JSON: 1.0
+    DOCX: 1.0
+    # 사용자 정의 파일 타입 추가 가능

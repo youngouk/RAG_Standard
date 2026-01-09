@@ -1,0 +1,50 @@
+# Railway Configuration File
+# 기능: Railway 배포 설정 (FastAPI Backend 서비스)
+# 문서: https://docs.railway.app/reference/config-as-code
+
+[build]
+# Dockerfile 기반 빌드
+builder = "DOCKERFILE"
+dockerfilePath = "./Dockerfile"
+
+[deploy]
+# 시작 명령어: Dockerfile의 ENTRYPOINT 호출
+# docker-entrypoint.sh가 PORT 환경변수를 올바르게 확장
+startCommand = "/app/docker-entrypoint.sh"
+
+# Health check 설정
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+[env]
+# 기본 환경 변수 (민감하지 않은 값만)
+# 민감한 값(API Key 등)은 Railway Dashboard에서 설정
+PORT = "8000"
+LOG_LEVEL = "INFO"
+PYTHONUNBUFFERED = "1"
+DEBUG = "false"
+
+# Feature Flags (MVP Phase 1)
+ENABLE_GRACEFUL_DEGRADATION = "true"
+
+# Monitoring
+MONITORING_ENABLED = "true"
+MONITORING_INTERVAL = "60000"
+
+# Rate Limiting
+RATE_LIMIT_MAX_REQUESTS = "100"
+RATE_LIMIT_WINDOW_MINUTES = "15"
+
+# Weaviate Connection (Private Network)
+WEAVIATE_URL = "http://weaviate.railway.internal:8080"
+WEAVIATE_GRPC_HOST = "weaviate.railway.internal"
+WEAVIATE_GRPC_PORT = "50051"
+WEAVIATE_COLLECTION = "Documents"
+
+# Langfuse (Cloud 사용 권장)
+LANGFUSE_ENABLED = "true"
+LANGFUSE_HOST = "https://cloud.langfuse.com"
+LANGFUSE_SAMPLING_RATE = "1.0"
+LANGFUSE_DEBUG = "false"

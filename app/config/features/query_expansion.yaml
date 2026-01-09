@@ -1,0 +1,46 @@
+# 쿼리 확장 설정
+# 기능: 사용자 쿼리를 다양한 표현으로 확장하여 검색 품질 향상
+# 사용: OpenRouter 통합 게이트웨이를 통한 Multi-Query RRF 확장 전략
+
+query_expansion:
+  enabled: false
+  num_expansions: 5
+  cache_size: 1000
+  cache_ttl: 86400  # 1일 (24시간)
+
+  # ========================================
+  # OpenRouter 통합 LLM 설정
+  # ========================================
+  # 쿼리 확장 전용 경량 모델 사용
+  # 속도 우선: 빠른 응답과 낮은 비용
+
+  llm:
+    # OpenRouter 게이트웨이 사용
+    provider: "openrouter"
+
+    # 경량 모델 - 쿼리 확장은 복잡한 추론 불필요
+    # Gemini 2.5 Flash Lite - 초경량 빠른 응답
+    model: "google/gemini-2.5-flash-lite"
+
+    # API 설정 (OpenRouter 단일 키)
+    api_key: "${OPENROUTER_API_KEY:-}"
+
+    # 요청 파라미터
+    max_tokens: 500
+    temperature: 0.7  # 다양한 쿼리 생성을 위해 높은 temperature
+    timeout: 10
+
+    # 레거시 파라미터 (OpenAI 호환용)
+    verbosity: "low"              # 간결한 확장 쿼리 (속도 우선)
+    reasoning_effort: "minimal"   # 빠른 응답 (속도 우선)
+
+    # Fallback 설정
+    defaults:
+      verbosity: "low"            # 쿼리 확장은 간결함이 핵심
+      reasoning_effort: "minimal"
+      temperature: 0.7
+
+  # Multi-Query RRF 설정
+  multi_query:
+    enabled: true
+    query_weights: [1.0, 0.8, 0.6, 0.4, 0.2]

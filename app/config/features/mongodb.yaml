@@ -1,0 +1,27 @@
+# MongoDB 데이터베이스 설정
+# 기능: 세션, 대화 기록, 문서 저장 및 벡터 검색용 MongoDB Atlas 연결 설정
+# 사용: 연결 URI, 데이터베이스명, 컬렉션명, 풀 설정 등
+
+mongodb:
+  # Connection URI (환경변수에서 로드)
+  uri: "${MONGODB_URI}"
+
+  # Database name
+  database: "${MONGODB_DATABASE:-chatbot}"
+
+  # Collection names
+  collections:
+    sessions: "${MONGODB_SESSION_COLLECTION:-sessions}"
+    chat_history: "${MONGODB_CHAT_HISTORY_COLLECTION:-chat_history}"
+    documents: "${MONGODB_DOCUMENTS_COLLECTION:-documents}"
+
+  # Connection timeout (milliseconds)
+  timeout_ms: "${MONGODB_TIMEOUT_MS:-5000}"
+
+  # Connection pool settings
+  max_pool_size: 10
+  min_pool_size: 1
+
+  # Write settings
+  retry_writes: true
+  w: "majority"  # Write Concern: majority로 데이터 안정성 보장

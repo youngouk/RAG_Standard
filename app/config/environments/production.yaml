@@ -1,0 +1,92 @@
+# Production 환경 설정
+# 프로덕션 환경에 최적화된 안정적이고 안전한 설정값
+
+app:
+  environment: "production"
+  debug: false  # 프로덕션에서는 디버그 비활성화
+
+server:
+  reload: false  # 프로덕션에서는 리로드 비활성화
+  workers: 4     # 프로덕션 워커 수
+
+# LLM 프로덕션 모드 설정
+llm:
+  default_provider: "google"
+  auto_fallback: true  # 프로덕션에서는 폴백 활성화
+  fallback_order:
+    - "google"
+    - "openrouter"
+    - "anthropic"
+  google:
+    temperature: 0.0  # 프로덕션에서는 일관성 우선
+    max_tokens: 2048  # 충분한 토큰
+    timeout: 30       # 안정적인 타임아웃
+    max_retries: 3
+
+generation:
+  default_provider: "google"
+  auto_fallback: true
+  fallback_order:
+    - "google"
+    - "openrouter"
+  google:
+    temperature: 0.0
+    max_tokens: 2048
+    timeout: 30
+    max_retries: 3
+
+# 검색 설정 (프로덕션 환경)
+retrieval:
+  max_sources: 15  # 프로덕션에서는 충분한 소스
+  top_k: 15
+  min_score: 0.05
+  hybrid_alpha: 0.6
+
+# 캐시 설정 (프로덕션 환경)
+cache:
+  enabled: true   # 프로덕션에서는 캐시 활성화
+  ttl: 3600       # 1시간 TTL
+
+# 세션 설정 (프로덕션 환경)
+session:
+  max_history: 10
+  cleanup_interval: 3600  # 1시간마다 정리
+
+# 로깅 설정 (프로덕션 환경)
+logging:
+  level: "INFO"
+  format: "json"  # 구조화된 로깅
+
+# Circuit Breaker (프로덕션 환경)
+circuit_breaker:
+  enabled: true  # 프로덕션에서는 활성화
+  failure_threshold: 5
+  recovery_timeout: 60
+  half_open_requests: 3
+
+# Langfuse (프로덕션 환경)
+langfuse:
+  enabled: true  # 프로덕션 모니터링 활성화
+
+# MongoDB (프로덕션 환경)
+mongodb:
+  timeout_ms: 30000  # 안정적인 타임아웃
+  max_pool_size: 50
+  min_pool_size: 10
+
+# Weaviate (프로덕션 환경)
+weaviate:
+  timeout: 30  # 안정적인 타임아웃
+  batch_size: 100
+
+# 리랭킹 (프로덕션 환경)
+reranking:
+  enabled: true
+  timeout: 30
+  max_retries: 3
+
+# GraphRAG (프로덕션 환경)
+graph_rag:
+  enabled: true
+  max_depth: 3
+  min_similarity: 0.7

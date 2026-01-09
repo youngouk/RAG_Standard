@@ -1,0 +1,63 @@
+# Test 환경 설정
+# 자동화 테스트에 최적화된 설정값
+
+app:
+  environment: "test"
+  debug: false
+
+server:
+  reload: false
+  workers: 1
+  port: 8001  # 테스트 전용 포트
+
+# LLM 테스트 모드 설정
+llm:
+  default_provider: "google"
+  google:
+    temperature: 0.0  # 테스트 환경에서는 일관성 중요
+    max_tokens: 512   # 테스트 환경에서는 최소 토큰
+    timeout: 10       # 짧은 타임아웃
+
+generation:
+  default_provider: "google"
+  google:
+    temperature: 0.0
+    max_tokens: 512
+    timeout: 10
+
+# 검색 설정 (테스트 환경)
+retrieval:
+  max_sources: 5   # 테스트 속도 향상
+  top_k: 5
+  min_score: 0.1
+
+# 캐시 설정 (테스트 환경)
+cache:
+  enabled: false  # 테스트 일관성을 위해 비활성화
+  ttl: 10
+
+# 세션 설정 (테스트 환경)
+session:
+  redis_url: "redis://localhost:6379/1"  # 테스트 전용 DB
+  max_history: 3
+
+# 로깅 설정 (테스트 환경)
+logging:
+  level: "WARNING"  # 테스트 로그 최소화
+  format: "simple"
+
+# Circuit Breaker (테스트 환경)
+circuit_breaker:
+  enabled: false  # 테스트 예측 가능성 향상
+
+# Langfuse (테스트 환경)
+langfuse:
+  enabled: false  # 테스트에서는 외부 통신 차단
+
+# MongoDB (테스트 환경)
+mongodb:
+  timeout_ms: 5000  # 테스트 환경에서는 짧은 타임아웃
+
+# Weaviate (테스트 환경)
+weaviate:
+  timeout: 10  # 짧은 타임아웃

@@ -1,0 +1,51 @@
+# Development 환경 설정
+# 로컬 개발 환경에 최적화된 설정값
+
+app:
+  environment: "development"
+  debug: true
+
+server:
+  reload: true  # 자동 리로드 활성화
+  workers: 1
+
+# LLM 개발 모드 설정
+llm:
+  default_provider: "google"
+  google:
+    temperature: 0.3  # 개발 환경에서는 다양한 응답 테스트
+    max_tokens: 1024  # 개발 환경에서는 토큰 제한
+
+generation:
+  default_provider: "google"
+  google:
+    temperature: 0.3
+    max_tokens: 1024
+
+# 검색 설정 (개발 환경)
+retrieval:
+  max_sources: 10  # 빠른 개발을 위해 소스 제한
+  top_k: 10
+
+# 캐시 설정 (개발 환경)
+cache:
+  enabled: false  # 개발 중에는 캐시 비활성화로 즉각 반영
+  ttl: 60  # 짧은 TTL
+
+# 세션 설정 (개발 환경)
+session:
+  redis_url: "redis://localhost:6379/0"
+  max_history: 5  # 개발 환경에서는 히스토리 제한
+
+# 로깅 설정 (개발 환경)
+logging:
+  level: "DEBUG"
+  format: "detailed"
+
+# Circuit Breaker (개발 환경)
+circuit_breaker:
+  enabled: false  # 개발 중에는 비활성화
+
+# Langfuse (개발 환경)
+langfuse:
+  enabled: false  # 개발 중에는 선택적 활성화

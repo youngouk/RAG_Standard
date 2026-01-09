@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  weaviate:
+    # 로컬 개발: cr.weaviate.io 사용 가능
+    # Railway 배포: semitechnologies/weaviate:1.27.8 (Docker Hub) 사용 필수
+    image: cr.weaviate.io/semitechnologies/weaviate:1.27.8
+    container_name: weaviate-local
+    restart: unless-stopped
+    ports:
+      - "8080:8080"  # HTTP API
+      - "50051:50051"  # gRPC (Python client v4)
+    environment:
+      # 한국어 토크나이저 활성화 (필수!)
+      ENABLE_TOKENIZER_KAGOME_KR: 'true'
+
+      # 데이터 영속화
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+
+      # 인증 (로컬 개발 환경 - 비활성화)
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+
+      # 쿼리 설정
+      QUERY_DEFAULTS_LIMIT: 25
+
+      # 로그 레벨
+      LOG_LEVEL: 'info'
+
+      # 백업 설정 (선택 사항)
+      # ENABLE_MODULES: 'backup-filesystem'
+      # BACKUP_FILESYSTEM_PATH: '/var/lib/weaviate/backups'
+    volumes:
+      # Named volume으로 데이터 영속화
+      - weaviate_data:/var/lib/weaviate
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/v1/.well-known/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  weaviate_data:
+    name: weaviate_local_data

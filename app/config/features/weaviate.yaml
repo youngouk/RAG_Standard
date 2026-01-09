@@ -1,0 +1,46 @@
+# Weaviate Vector Database 설정
+# 기능: 벡터 검색, 하이브리드 검색 (Dense + BM25), 한국어 토크나이저 지원
+# 사용: Collection 관리, 문서 저장 및 검색
+
+weaviate:
+  # Connection URL (환경변수에서 로드)
+  # 로컬: http://localhost:8080
+  # 프로덕션: http://weaviate.railway.internal:8080 또는 공개 URL
+  url: "${WEAVIATE_URL:-http://localhost:8080}"
+
+  # gRPC 설정 (Python client v4 사용 시 필수)
+  grpc_host: "${WEAVIATE_GRPC_HOST:-localhost}"
+  grpc_port: "${WEAVIATE_GRPC_PORT:-50051}"
+
+  # API Key (프로덕션 환경에서만 필요, 로컬은 비워둠)
+  api_key: "${WEAVIATE_API_KEY:}"
+
+  # Collection name (기본 Documents)
+  collection_name: "${WEAVIATE_COLLECTION:-Documents}"
+
+  # Phase 3: 추가 검색 컬렉션 목록
+  # 메인 컬렉션(Documents)과 함께 병렬 검색하여 RRF로 결과 병합
+  # 예: NotionMetadata - 구조화된 업체 메타데이터 (1,129개 청크)
+  additional_collections:
+    - "NotionMetadata"
+
+  # Connection timeout (seconds)
+  timeout: 30
+
+  # Hybrid Search 기본 설정
+  hybrid_search:
+    # alpha: 0 (BM25만), 1 (Vector만)
+    # 0.6 = 60% Vector + 40% BM25
+    # 카카오톡 대화(구어체)는 BM25보다 Vector 유사도에서 강점
+    default_alpha: 0.6
+    # 기본 검색 결과 수
+    default_limit: 10
+
+  # Collection Schema 설정 (초기화 시 사용)
+  schema:
+    # 한국어 토크나이저 사용 여부
+    use_korean_tokenizer: true
+    # Vectorizer 설정 (외부 임베딩 사용)
+    vectorizer: "none"
+    # Vector 차원 (Gemini embedding-001: 3072)
+    vector_dimensions: 3072
