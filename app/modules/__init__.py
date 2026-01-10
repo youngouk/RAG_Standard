@@ -31,7 +31,6 @@ from .core import (
     SearchResult,
     SelfRAGOrchestrator,
     SelfRAGResult,
-    get_prompt_manager,
 )
 
 __all__ = [
@@ -52,7 +51,6 @@ __all__ = [
     "SelfRAGOrchestrator",
     "SelfRAGResult",
     "PromptManager",
-    "get_prompt_manager",
     "RuleBasedRouter",
     "RuleMatch",
 ]

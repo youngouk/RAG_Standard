@@ -384,8 +384,3 @@ User: {prompt}"""
         except Exception as e:
             logger.error("health_check_failed", model=self.model, error=str(e))
             return False
-
-
-# 하위 호환성: GPT5NanoReranker 별칭
-# deprecated - OpenAILLMReranker 사용 권장
-GPT5NanoReranker = OpenAILLMReranker

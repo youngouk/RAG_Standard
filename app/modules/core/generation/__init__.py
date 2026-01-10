@@ -29,7 +29,7 @@ Multi-LLM 지원 답변 생성 시스템
 from .generator import GenerationModule, GenerationResult
 
 # 프롬프트 관리자
-from .prompt_manager import PromptManager, get_prompt_manager
+from .prompt_manager import PromptManager
 
 __all__ = [
     # Generation
@@ -37,5 +37,4 @@ __all__ = [
     "GenerationResult",
     # Prompt Management
     "PromptManager",
-    "get_prompt_manager",
 ]

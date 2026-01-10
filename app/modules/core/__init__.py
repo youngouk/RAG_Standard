@@ -10,7 +10,7 @@
 
 from .documents import DocumentProcessor
 from .embedding import GeminiEmbedder, GeminiEmbeddings  # 하위 호환성 유지
-from .generation import GenerationModule, GenerationResult, PromptManager, get_prompt_manager
+from .generation import GenerationModule, GenerationResult, PromptManager
 from .retrieval import QueryComplexity, RetrievalOrchestrator, SearchIntent
 from .retrieval.interfaces import SearchResult
 from .retrieval.query_expansion import ExpandedQuery, GPT5QueryExpansionEngine
@@ -52,7 +52,6 @@ __all__ = [
     "GenerationModule",
     "GenerationResult",
     "PromptManager",
-    "get_prompt_manager",
     # Session Management
     "EnhancedSessionModule",
     # Query Routing

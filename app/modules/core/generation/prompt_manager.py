@@ -788,33 +788,3 @@ class PromptManager:
                 exc_info=True
             )
             raise
-
-
-# 전역 인스턴스
-_prompt_manager: PromptManager | None = None
-
-
-def get_prompt_manager() -> PromptManager:
-    """
-    프롬프트 매니저 인스턴스 반환
-
-    .. deprecated:: 3.1.0
-        DI Container의 AppContainer.prompt_manager를 사용하세요.
-        이 함수는 하위 호환성을 위해 유지되며 v4.0.0에서 제거될 예정입니다.
-
-    Returns:
-        PromptManager 인스턴스
-    """
-    import warnings
-
-    warnings.warn(
-        "get_prompt_manager()는 deprecated되었습니다. "
-        "DI Container의 AppContainer.prompt_manager를 사용하세요.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
-    global _prompt_manager
-    if _prompt_manager is None:
-        _prompt_manager = PromptManager()
-    return _prompt_manager

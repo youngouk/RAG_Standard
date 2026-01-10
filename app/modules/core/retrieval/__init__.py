@@ -58,7 +58,7 @@ from .rerankers.gemini_reranker import GeminiFlashReranker
 
 # Reranker 구현체 (Phase 2.3 완료)
 from .rerankers.jina_reranker import JinaReranker
-from .rerankers.openai_llm_reranker import GPT5NanoReranker, OpenAILLMReranker
+from .rerankers.openai_llm_reranker import OpenAILLMReranker
 
 # Retriever 구현체 (Phase 2.2 완료)
 # MongoDB Retriever (프로덕션 기본값)
@@ -82,7 +82,6 @@ __all__ = [
     # Reranker 구현체
     "JinaReranker",
     "OpenAILLMReranker",
-    "GPT5NanoReranker",  # deprecated - OpenAILLMReranker 사용 권장
     "GeminiFlashReranker",
     # Orchestrator (Facade)
     "RetrievalOrchestrator",
