@@ -6,6 +6,7 @@ LLM Client Factory - 통합 LLM 클라이언트 관리
 import asyncio
 import os
 from abc import ABC, abstractmethod
+from collections.abc import AsyncGenerator
 from typing import Any, Literal
 
 import google.generativeai as genai
@@ -33,6 +34,25 @@ class BaseLLMClient(ABC):
     ) -> str:
         """텍스트 생성 (프롬프트만 전달, 시스템 프롬프트 선택적)"""
         pass
+
+    @abstractmethod
+    async def stream_text(
+        self, prompt: str, system_prompt: str | None = None, **kwargs: Any
+    ) -> AsyncGenerator[str, None]:
+        """
+        텍스트 스트리밍 생성 (AsyncGenerator)
+
+        Args:
+            prompt: 사용자 프롬프트
+            system_prompt: 시스템 프롬프트 (선택적)
+            **kwargs: 추가 파라미터
+
+        Yields:
+            str: 생성된 텍스트 청크
+        """
+        # 추상 메서드: 하위 클래스에서 구현 필수
+        # AsyncGenerator를 위해 yield 필요
+        yield ""  # type: ignore[misc]
 
     async def generate_multimodal(
         self,
@@ -104,6 +124,52 @@ class GoogleLLMClient(BaseLLMClient):
                     "error_type": type(e).__name__
                 },
                 exc_info=True
+            )
+            raise
+
+    async def stream_text(
+        self, prompt: str, system_prompt: str | None = None, **kwargs: Any
+    ) -> AsyncGenerator[str, None]:
+        """
+        Gemini 스트리밍 텍스트 생성
+
+        Google Gemini API의 stream=True 옵션을 사용하여
+        응답을 청크 단위로 yield합니다.
+
+        Args:
+            prompt: 사용자 프롬프트
+            system_prompt: 시스템 프롬프트 (선택적)
+            **kwargs: 추가 파라미터
+
+        Yields:
+            str: 생성된 텍스트 청크
+        """
+        try:
+            model = genai.GenerativeModel(
+                model_name=self.model,
+                system_instruction=system_prompt if system_prompt else None,
+            )
+
+            # stream=True로 스트리밍 응답 요청
+            response = model.generate_content(
+                prompt,
+                generation_config=self.generation_config,  # type: ignore[arg-type]
+                stream=True,
+            )
+
+            # 청크 단위로 yield (빈 텍스트는 건너뜀)
+            for chunk in response:
+                if chunk.text:
+                    yield chunk.text
+
+        except Exception as e:
+            logger.error(
+                "Google LLM 스트리밍 실패",
+                extra={
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                },
+                exc_info=True,
             )
             raise
 
@@ -295,6 +361,20 @@ class OpenAILLMClient(BaseLLMClient):
             )
             raise
 
+    async def stream_text(
+        self, prompt: str, system_prompt: str | None = None, **kwargs: Any
+    ) -> AsyncGenerator[str, None]:
+        """
+        OpenAI 스트리밍 텍스트 생성 (향후 구현 예정)
+
+        현재는 NotImplementedError를 발생시킵니다.
+        """
+        raise NotImplementedError(
+            "OpenAILLMClient.stream_text()는 아직 구현되지 않았습니다. "
+            "GoogleLLMClient를 사용하거나 향후 업데이트를 기다려주세요."
+        )
+        yield  # AsyncGenerator 타입 힌트를 위해 필요
+
 
 class AnthropicLLMClient(BaseLLMClient):
     """Anthropic Claude 클라이언트"""
@@ -332,6 +412,20 @@ class AnthropicLLMClient(BaseLLMClient):
                 exc_info=True
             )
             raise
+
+    async def stream_text(
+        self, prompt: str, system_prompt: str | None = None, **kwargs: Any
+    ) -> AsyncGenerator[str, None]:
+        """
+        Anthropic 스트리밍 텍스트 생성 (향후 구현 예정)
+
+        현재는 NotImplementedError를 발생시킵니다.
+        """
+        raise NotImplementedError(
+            "AnthropicLLMClient.stream_text()는 아직 구현되지 않았습니다. "
+            "GoogleLLMClient를 사용하거나 향후 업데이트를 기다려주세요."
+        )
+        yield  # AsyncGenerator 타입 힌트를 위해 필요
 
 
 class OpenRouterLLMClient(BaseLLMClient):
@@ -460,6 +554,20 @@ class OpenRouterLLMClient(BaseLLMClient):
                 exc_info=True
             )
             raise
+
+    async def stream_text(
+        self, prompt: str, system_prompt: str | None = None, **kwargs: Any
+    ) -> AsyncGenerator[str, None]:
+        """
+        OpenRouter 스트리밍 텍스트 생성 (향후 구현 예정)
+
+        현재는 NotImplementedError를 발생시킵니다.
+        """
+        raise NotImplementedError(
+            "OpenRouterLLMClient.stream_text()는 아직 구현되지 않았습니다. "
+            "GoogleLLMClient를 사용하거나 향후 업데이트를 기다려주세요."
+        )
+        yield  # AsyncGenerator 타입 힌트를 위해 필요
 
 
 class LLMClientFactory:
