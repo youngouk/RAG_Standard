@@ -2,7 +2,7 @@
 AgentOrchestrator - 메인 에이전트 루프
 
 ReAct 패턴 기반 에이전트 루프를 조율하는 핵심 컴포넌트입니다.
-Plan -> Execute -> Observe -> Synthesize 사이클을 반복하며
+Plan -> Execute -> Observe -> Synthesize -> Reflect 사이클을 반복하며
 최종 답변을 생성합니다.
 
 주요 기능:
@@ -10,6 +10,7 @@ Plan -> Execute -> Observe -> Synthesize 사이클을 반복하며
 - AgentExecutor를 통한 도구 실행 (Execute)
 - 결과 관찰 및 다음 행동 결정 (Observe)
 - AgentSynthesizer를 통한 최종 답변 생성 (Synthesize)
+- AgentReflector를 통한 답변 품질 평가 및 개선 (Reflect)
 - max_iterations로 무한 루프 방지
 - AgentResult 생성 및 반환
 
@@ -19,24 +20,28 @@ Plan -> Execute -> Observe -> Synthesize 사이클을 반복하며
         executor=executor,
         synthesizer=synthesizer,
         config=config,
+        reflector=reflector,  # 선택적
     )
     result = await orchestrator.run("사용자 질문")
 
 아키텍처:
-    ┌─────────────────────────────────────────────────────────┐
-    │                   AgentOrchestrator                      │
-    │                                                          │
-    │  ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐ │
-    │  │  Plan   │──▶│ Execute │──▶│ Observe │──▶│Synthesize│ │
-    │  │(Planner)│   │(Executor)│   │ (State) │   │(Synth)  │ │
-    │  └─────────┘   └─────────┘   └─────────┘   └─────────┘ │
-    │       │                            │                     │
-    │       └────────── 반복 ────────────┘                     │
-    │              (until done or max)                         │
-    └─────────────────────────────────────────────────────────┘
+    ┌──────────────────────────────────────────────────────────────────────────┐
+    │                           AgentOrchestrator                               │
+    │                                                                           │
+    │  ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌──────────┐   ┌─────────┐  │
+    │  │  Plan   │──▶│ Execute │──▶│ Observe │──▶│Synthesize│──▶│ Reflect │  │
+    │  │(Planner)│   │(Executor)│   │ (State) │   │ (Synth)  │   │(Reflector)│ │
+    │  └─────────┘   └─────────┘   └─────────┘   └──────────┘   └─────────┘  │
+    │       │                            │              │             │        │
+    │       └────────── 반복 ────────────┘              └─── 개선 ────┘        │
+    │              (until done or max)                (until pass or max)      │
+    └──────────────────────────────────────────────────────────────────────────┘
 """
 
+from __future__ import annotations
+
 import time
+from typing import TYPE_CHECKING
 
 from app.lib.logger import get_logger
 from app.modules.core.agent.executor import AgentExecutor
@@ -48,6 +53,9 @@ from app.modules.core.agent.interfaces import (
 )
 from app.modules.core.agent.planner import AgentPlanner
 from app.modules.core.agent.synthesizer import AgentSynthesizer
+
+if TYPE_CHECKING:
+    from app.modules.core.agent.reflector import AgentReflector
 
 logger = get_logger(__name__)
 
@@ -65,12 +73,14 @@ class AgentOrchestrator:
         _executor: 도구 실행기 (AgentExecutor)
         _synthesizer: 결과 합성기 (AgentSynthesizer)
         _config: 에이전트 설정 (AgentConfig)
+        _reflector: 답변 품질 평가기 (AgentReflector, 선택적)
 
     흐름:
         1. Planner: 다음 행동 결정 (도구 선택)
         2. Executor: 도구 실행
         3. Observe: 결과 확인 -> 계속/종료 결정
         4. Synthesizer: 최종 답변 생성
+        5. Reflector: 답변 품질 평가 및 개선 (선택적)
     """
 
     def __init__(
@@ -79,6 +89,7 @@ class AgentOrchestrator:
         executor: AgentExecutor,
         synthesizer: AgentSynthesizer,
         config: AgentConfig,
+        reflector: AgentReflector | None = None,
     ) -> None:
         """
         AgentOrchestrator 초기화
@@ -88,6 +99,7 @@ class AgentOrchestrator:
             executor: 도구 실행기 (MCPServer 래핑)
             synthesizer: 결과 합성기 (최종 답변 생성)
             config: 에이전트 설정 (max_iterations, timeout 등)
+            reflector: 답변 품질 평가기 (선택적, None이면 Reflection 건너뜀)
 
         Raises:
             ValueError: 필수 의존성 누락 시
@@ -105,11 +117,13 @@ class AgentOrchestrator:
         self._executor = executor
         self._synthesizer = synthesizer
         self._config = config
+        self._reflector = reflector
 
         logger.info(
             f"AgentOrchestrator 초기화: "
             f"max_iterations={config.max_iterations}, "
-            f"timeout={config.timeout}s"
+            f"timeout={config.timeout}s, "
+            f"reflection={'enabled' if reflector and config.enable_reflection else 'disabled'}"
         )
 
     async def run(
@@ -200,6 +214,10 @@ class AgentOrchestrator:
             # 5. Synthesize: 최종 답변 생성
             answer, sources = await self._synthesizer.synthesize(state)
 
+            # 6. Reflect: 답변 품질 평가 및 개선 (선택적)
+            if self._should_reflect():
+                answer, sources = await self._reflection_loop(state, answer, sources)
+
             # 상태 업데이트
             state.final_answer = answer
             state.sources = sources
@@ -257,3 +275,121 @@ class AgentOrchestrator:
                 tools_used.add(tool_call.tool_name)
 
         return list(tools_used)
+
+    def _should_reflect(self) -> bool:
+        """
+        Reflection 실행 여부 판단
+
+        설정에서 reflection이 활성화되어 있고,
+        reflector가 주입된 경우에만 True를 반환합니다.
+
+        Returns:
+            bool: Reflection을 실행해야 하면 True
+        """
+        return (
+            self._reflector is not None
+            and self._config.enable_reflection
+        )
+
+    async def _reflection_loop(
+        self,
+        state: AgentState,
+        answer: str,
+        sources: list[dict],
+    ) -> tuple[str, list[dict]]:
+        """
+        Self-Reflection 루프
+
+        생성된 답변의 품질을 평가하고, threshold 미달 시
+        재생성을 통해 개선합니다.
+
+        Args:
+            state: 현재 에이전트 상태
+            answer: 초기 생성된 답변
+            sources: 초기 소스 목록
+
+        Returns:
+            tuple[str, list[dict]]: 최종 답변과 소스 목록
+        """
+        if self._reflector is None:
+            return answer, sources
+
+        # 컨텍스트 추출 (검색 결과 요약)
+        context = self._extract_context_for_reflection(state)
+
+        current_answer = answer
+        current_sources = sources
+
+        for iteration in range(self._config.max_reflection_iterations):
+            logger.info(
+                f"Reflection 평가 {iteration + 1}/"
+                f"{self._config.max_reflection_iterations}"
+            )
+
+            # Reflection 수행
+            reflection_result = await self._reflector.reflect(
+                query=state.original_query,
+                answer=current_answer,
+                context=context,
+            )
+
+            logger.debug(
+                f"Reflection 결과: score={reflection_result.score}, "
+                f"needs_improvement={reflection_result.needs_improvement}"
+            )
+
+            # 품질 충분하면 종료
+            if not reflection_result.needs_improvement:
+                logger.info(
+                    f"Reflection 통과: score={reflection_result.score} "
+                    f"(threshold={self._config.reflection_threshold})"
+                )
+                break
+
+            # 마지막 iteration이면 더 이상 개선하지 않음
+            if iteration == self._config.max_reflection_iterations - 1:
+                logger.warning(
+                    f"Reflection 최대 반복 도달: "
+                    f"score={reflection_result.score}"
+                )
+                break
+
+            # 재생성 시도
+            logger.info(
+                f"답변 재생성 시도: "
+                f"issues={reflection_result.issues}"
+            )
+            current_answer, current_sources = await self._synthesizer.synthesize(
+                state
+            )
+
+        return current_answer, current_sources
+
+    def _extract_context_for_reflection(self, state: AgentState) -> str:
+        """
+        Reflection을 위한 컨텍스트 추출
+
+        에이전트가 수집한 도구 결과들을 요약하여
+        Reflection 평가에 사용할 컨텍스트를 생성합니다.
+
+        Args:
+            state: 에이전트 상태
+
+        Returns:
+            str: 검색 결과 요약 문자열
+        """
+        context_parts: list[str] = []
+
+        for step in state.steps:
+            for result in step.tool_results:
+                if result.success and result.data:
+                    # 결과가 너무 길면 truncate
+                    result_text = str(result.data)[:500]
+                    context_parts.append(
+                        f"[{result.tool_name}]: {result_text}"
+                    )
+
+        if not context_parts:
+            return "검색 결과 없음"
+
+        return "\n".join(context_parts)
