@@ -76,6 +76,19 @@ class AgentConfig:
     # 최대 Reflection 반복 횟수
     max_reflection_iterations: int = 2
 
+    def __post_init__(self) -> None:
+        """설정값 검증"""
+        # reflection_threshold 범위 검증 (0-10)
+        if not 0.0 <= self.reflection_threshold <= 10.0:
+            raise ValueError(
+                f"reflection_threshold는 0-10 범위여야 합니다: {self.reflection_threshold}"
+            )
+        # max_reflection_iterations 검증 (>= 1)
+        if self.max_reflection_iterations < 1:
+            raise ValueError(
+                f"max_reflection_iterations는 1 이상이어야 합니다: {self.max_reflection_iterations}"
+            )
+
 
 @dataclass
 class ToolCall:
@@ -340,3 +353,8 @@ class ReflectionResult:
 
     # 평가 근거
     reasoning: str = ""
+
+    def __post_init__(self) -> None:
+        """점수 범위 검증"""
+        if not 0.0 <= self.score <= 10.0:
+            raise ValueError(f"score는 0-10 범위여야 합니다: {self.score}")

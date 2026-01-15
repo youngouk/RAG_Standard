@@ -5,6 +5,8 @@ Self-Reflection 기능의 핵심 데이터 구조 테스트:
 - ReflectionResult: Reflection 결과 데이터 클래스
 - AgentConfig: Reflection 설정 필드
 """
+import pytest
+
 from app.modules.core.agent.interfaces import AgentConfig, ReflectionResult
 
 
@@ -102,6 +104,18 @@ class TestReflectionResult:
         assert result1.suggestions == ["테스트 제안"]
         assert result2.suggestions == []
 
+    def test_reflection_result_score_validation_negative(self):
+        """음수 점수 검증 - ValueError 발생"""
+        # Given/When/Then: 음수 점수로 생성 시 ValueError 발생
+        with pytest.raises(ValueError, match="score는 0-10 범위여야 합니다"):
+            ReflectionResult(score=-1.0, needs_improvement=True)
+
+    def test_reflection_result_score_validation_over_max(self):
+        """최대값 초과 점수 검증 - ValueError 발생"""
+        # Given/When/Then: 10 초과 점수로 생성 시 ValueError 발생
+        with pytest.raises(ValueError, match="score는 0-10 범위여야 합니다"):
+            ReflectionResult(score=11.0, needs_improvement=False)
+
 
 class TestAgentConfigReflection:
     """AgentConfig Reflection 설정 테스트"""
@@ -164,3 +178,27 @@ class TestAgentConfigReflection:
 
         # Then: 1회 반복이 설정됨
         assert config.max_reflection_iterations == 1
+
+    def test_agent_config_threshold_validation_negative(self):
+        """reflection_threshold 음수 검증 - ValueError 발생"""
+        # Given/When/Then: 음수 threshold로 생성 시 ValueError 발생
+        with pytest.raises(ValueError, match="reflection_threshold는 0-10 범위여야 합니다"):
+            AgentConfig(reflection_threshold=-1.0)
+
+    def test_agent_config_threshold_validation_over_max(self):
+        """reflection_threshold 최대값 초과 검증 - ValueError 발생"""
+        # Given/When/Then: 10 초과 threshold로 생성 시 ValueError 발생
+        with pytest.raises(ValueError, match="reflection_threshold는 0-10 범위여야 합니다"):
+            AgentConfig(reflection_threshold=11.0)
+
+    def test_agent_config_iterations_validation_zero(self):
+        """max_reflection_iterations 0값 검증 - ValueError 발생"""
+        # Given/When/Then: 0 반복으로 생성 시 ValueError 발생
+        with pytest.raises(ValueError, match="max_reflection_iterations는 1 이상이어야 합니다"):
+            AgentConfig(max_reflection_iterations=0)
+
+    def test_agent_config_iterations_validation_negative(self):
+        """max_reflection_iterations 음수 검증 - ValueError 발생"""
+        # Given/When/Then: 음수 반복으로 생성 시 ValueError 발생
+        with pytest.raises(ValueError, match="max_reflection_iterations는 1 이상이어야 합니다"):
+            AgentConfig(max_reflection_iterations=-1)
