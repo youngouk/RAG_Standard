@@ -11,9 +11,11 @@ ReAct 패턴 (Reasoning + Acting + Synthesizing) 기반으로 구현되었습니
 - AgentStep: ReAct 패턴 한 사이클
 - AgentState: 에이전트 메모리 (히스토리 관리)
 - AgentResult: 최종 결과
+- ReflectionResult: Self-Reflection 결과
 - AgentPlanner: LLM 기반 도구 선택 (Reasoning 담당)
 - AgentExecutor: 도구 실행 (Acting 담당)
 - AgentSynthesizer: 결과 합성 (Synthesize 담당)
+- AgentReflector: 답변 품질 평가 (Reflect 담당)
 - AgentOrchestrator: 메인 에이전트 루프 (전체 조율)
 - AgentFactory: 설정 기반 Orchestrator 생성 팩토리
 
@@ -79,11 +81,13 @@ from .interfaces import (
     AgentResult,
     AgentState,
     AgentStep,
+    ReflectionResult,
     ToolCall,
     ToolResult,
 )
 from .orchestrator import AgentOrchestrator
 from .planner import AgentPlanner
+from .reflector import AgentReflector
 from .synthesizer import AgentSynthesizer
 
 __all__ = [
@@ -97,10 +101,12 @@ __all__ = [
     "AgentState",
     # 결과
     "AgentResult",
+    "ReflectionResult",
     # 컴포넌트
     "AgentPlanner",
     "AgentExecutor",
     "AgentSynthesizer",
+    "AgentReflector",
     "AgentOrchestrator",
     # 팩토리
     "AgentFactory",
