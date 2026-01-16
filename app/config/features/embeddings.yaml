@@ -39,11 +39,30 @@
 # Provider 선택
 # ============================================================
 # 지원 제공자:
+#   - "local"     : 로컬 임베딩 (API 키 불필요 - Quickstart용)
 #   - "google"    : Google Gemini Embedding (직접 API)
 #   - "openai"    : OpenAI Embedding (직접 API)
 #   - "openrouter": OpenRouter 통합 게이트웨이 (권장 - 다양한 모델 지원)
 embeddings:
   provider: "openrouter"
+
+  # ============================================================
+  # Local 설정 (API 키 불필요 - Quickstart용)
+  # ============================================================
+  # 첫 실행 시 HuggingFace에서 모델 자동 다운로드 (~1.2GB)
+  # Docker 빌드 시 이미지에 포함됨
+  #
+  # 장점: API 키 없이 바로 사용 가능
+  # 단점: 클라우드 모델 대비 품질 약간 낮음, 초기 로딩 시간
+  local:
+    # 지원 모델:
+    #   - Qwen/Qwen3-Embedding-0.6B (권장): 1024차원, 32K 컨텍스트, 다국어
+    #   - intfloat/multilingual-e5-small: 384차원, 경량
+    model: "Qwen/Qwen3-Embedding-0.6B"
+    output_dimensionality: 1024
+    batch_size: 32
+    normalize: true
+    device: null  # null=자동선택, "cpu", "cuda"
 
   # ============================================================
   # OpenRouter 설정 (권장)

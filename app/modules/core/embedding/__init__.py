@@ -39,6 +39,7 @@ from .factory import SUPPORTED_MODELS, EmbedderFactory
 from .gemini_embedder import GeminiEmbedder
 from .interfaces import BaseEmbedder, IEmbedder
 from .openai_embedder import OpenAIEmbedder, OpenRouterEmbedder
+from .local_embedder import LocalEmbedder, SUPPORTED_LOCAL_MODELS, DEFAULT_LOCAL_MODEL
 
 # 하위 호환성을 위한 별칭 (기존 코드가 GeminiEmbeddings를 사용하는 경우)
 GeminiEmbeddings = GeminiEmbedder
@@ -54,6 +55,10 @@ __all__ = [
     "GeminiEmbedder",
     "OpenAIEmbedder",
     "OpenRouterEmbedder",
+    "LocalEmbedder",
+    # 로컬 임베더 상수
+    "SUPPORTED_LOCAL_MODELS",
+    "DEFAULT_LOCAL_MODEL",
     # 하위 호환성 별칭
     "GeminiEmbeddings",
 ]

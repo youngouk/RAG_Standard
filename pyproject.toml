@@ -89,6 +89,9 @@ dependencies = [
     "tavily-python>=0.7.18",
     "duckduckgo-search>=8.1.1",
     "rouge-score>=0.1.2",
+    # Local Embedding (API 키 없이 사용 가능)
+    "sentence-transformers>=3.0.0",
+    "torch>=2.0.0",
 ]
 
 [project.optional-dependencies]

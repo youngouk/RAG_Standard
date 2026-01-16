@@ -39,6 +39,7 @@ from ....lib.logger import get_logger
 from .gemini_embedder import GeminiEmbedder
 from .interfaces import IEmbedder
 from .openai_embedder import OpenAIEmbedder, OpenRouterEmbedder
+from .local_embedder import LocalEmbedder, DEFAULT_LOCAL_MODEL
 
 logger = get_logger(__name__)
 
@@ -160,10 +161,12 @@ class EmbedderFactory:
             return EmbedderFactory._create_openai_embedder(config, embeddings_config)
         elif provider == "openrouter":
             return EmbedderFactory._create_openrouter_embedder(config, embeddings_config)
+        elif provider == "local":
+            return EmbedderFactory._create_local_embedder(config, embeddings_config)
         else:
             raise ValueError(
                 f"지원하지 않는 임베딩 provider: {provider}. "
-                f"지원 목록: google, openai, openrouter"
+                f"지원 목록: google, openai, openrouter, local"
             )
 
     @staticmethod
@@ -340,6 +343,54 @@ class EmbedderFactory:
             batch_size=batch_size,
             site_url=site_url,
             app_name=app_name,
+        )
+
+    @staticmethod
+    def _create_local_embedder(
+        config: dict[str, Any],
+        embeddings_config: dict[str, Any]
+    ) -> LocalEmbedder:
+        """
+        로컬 임베더 생성
+
+        sentence-transformers를 사용하여 로컬에서 임베딩을 생성합니다.
+        API 키 없이 동작하며, Quickstart 환경에서 사용됩니다.
+
+        지원 모델:
+        - Qwen/Qwen3-Embedding-0.6B (기본): 1024차원, 32K 컨텍스트
+        - intfloat/multilingual-e5-small: 384차원, 경량
+
+        Args:
+            config: 전체 설정
+            embeddings_config: embeddings 섹션 설정
+
+        Returns:
+            LocalEmbedder 인스턴스
+        """
+        local_config = embeddings_config.get("local", {})
+
+        # 모델 설정
+        model_name = local_config.get("model", DEFAULT_LOCAL_MODEL)
+
+        # 차원 설정 (None이면 모델 기본값 사용)
+        output_dim = local_config.get("output_dimensionality")
+
+        # 기타 설정
+        batch_size = local_config.get("batch_size", 32)
+        normalize = local_config.get("normalize", True)
+        device = local_config.get("device")
+
+        logger.info(
+            f"✅ 로컬 임베더 생성: model={model_name}, "
+            f"dim={output_dim or 'auto'}, batch_size={batch_size}"
+        )
+
+        return LocalEmbedder(
+            model_name=model_name,
+            output_dimensionality=output_dim,
+            batch_size=batch_size,
+            normalize=normalize,
+            device=device,
         )
 
     @staticmethod
