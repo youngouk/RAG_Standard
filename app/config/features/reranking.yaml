@@ -1,107 +1,81 @@
-# 리랭킹 설정
-# 기능: 검색된 문서들의 관련성을 재평가하여 순위 조정
-# 사용: RerankerFactory가 이 설정을 읽어 적절한 리랭커 인스턴스 생성
+# 리랭킹 설정 v2.0
+# 3단계 계층 구조: approach → provider → model
 #
-# ╔═══════════════════════════════════════════════════════════════╗
-# ║  지원 프로바이더 (RerankerFactory):                            ║
-# ║  - gemini-flash: Google Gemini Flash Lite (빠름, 고품질)      ║
-# ║  - jina: Jina AI Reranker (다국어 지원, 균형)                 ║
-# ║  - jina-colbert: Jina ColBERT v2 (토큰 수준 정밀 매칭)        ║
-# ╚═══════════════════════════════════════════════════════════════╝
-#
-# v5.0.0 개선사항:
-# - RerankerFactory 패턴 도입
-# - YAML 설정만으로 리랭커 교체 가능
-# - 기존 providers 설정과 하위 호환성 유지
+# ╔═══════════════════════════════════════════════════════════════════════╗
+# ║  approach (기술 방식)                                                  ║
+# ╠═══════════════════════════════════════════════════════════════════════╣
+# ║  - llm:              범용 LLM 기반 리랭킹 (언어 이해력 활용)           ║
+# ║  - cross-encoder:    전용 리랭커 API (쿼리+문서 쌍 인코딩)            ║
+# ║  - late-interaction: ColBERT 방식 (토큰 레벨 상호작용)                ║
+# ╠═══════════════════════════════════════════════════════════════════════╣
+# ║  provider (서비스 제공자)                                              ║
+# ╠═══════════════════════════════════════════════════════════════════════╣
+# ║  llm:              google, openai, openrouter                         ║
+# ║  cross-encoder:    jina, cohere                                       ║
+# ║  late-interaction: jina                                               ║
+# ╚═══════════════════════════════════════════════════════════════════════╝
 
 reranking:
-  # Phase 2: Reranking 활성화 (OpenRouter Gemini 리랭커)
-  # 롤백 시: enabled: false로 변경
   enabled: true
 
   # ========================================
-  # RerankerFactory 설정 (신규 - 권장)
+  # 기본 설정
   # ========================================
-  # ⚠️ 프로바이더 변경 시 해당 API 키 환경변수 필요!
-  provider: "jina-colbert"  # gemini-flash, jina, jina-colbert
+  approach: "late-interaction"  # llm | cross-encoder | late-interaction
+  provider: "jina"              # approach에 따라 유효한 provider 선택
 
-  # Gemini Flash Lite 설정 (provider: gemini-flash)
-  gemini:
+  # ========================================
+  # Provider별 설정
+  # ========================================
+
+  # Google (Gemini) - LLM approach용
+  google:
     model: "gemini-flash-lite-latest"
     max_documents: 20
     timeout: 15
 
-  # Jina Reranker 설정 (provider: jina)
-  jina:
-    model: "jina-reranker-v2-base-multilingual"
-    top_n: 10
-
-  # Jina ColBERT 설정 (provider: jina-colbert)
-  colbert:
-    model: "jina-colbert-v2"
-    top_n: 10
-
-  # ========================================
-  # 레거시 설정 (하위 호환성)
-  # ========================================
-  # 기본 리랭커 선택 (레거시)
-  # TODO: 리랭커 설정 구조 리팩토링 필요 (기술부채 - TECHNICAL_DEBT_ANALYSIS.md 참조)
-  # 허용값: gemini_flash, llm, gpt5_nano, jina, cohere
-  default_provider: "jina"
-  # min_score 비활성화 - RRF 점수 범위 (0.01~0.04)에서 0.05면 모든 문서 필터링됨
-  min_score: 0.0
-
-  # 공통 기본값 (모든 LLM 기반 리랭커에 적용)
-  defaults:
+  # OpenAI - LLM approach용
+  openai:
+    model: "gpt-5-nano"
     max_documents: 20
     timeout: 15
-    verbosity: "low"              # 리랭킹은 속도 우선
-    reasoning_effort: "minimal"   # 최소 사고, 최대 속도
-    max_completion_tokens: 15000
+    verbosity: "low"
+    reasoning_effort: "minimal"
 
-  providers:
-    # ========================================
-    # OpenRouter 통합 리랭커 (권장)
-    # ========================================
-    # Gemini Flash Lite - 빠르고 저렴한 리랭킹
+  # OpenRouter - LLM approach용
+  openrouter:
+    model: "google/gemini-2.5-flash-lite"
+    max_documents: 20
+    timeout: 15
 
-    openrouter_gemini:
-      enabled: true
-      provider: "openrouter"
-      model: "google/gemini-2.5-flash-lite"
-      api_key: "${OPENROUTER_API_KEY:-}"
-      # max_documents, timeout, verbosity, reasoning_effort는 defaults 사용
+  # Jina - cross-encoder 및 late-interaction용
+  # approach에 따라 적절한 모델 자동 선택
+  jina:
+    # cross-encoder용: jina-reranker-v2-base-multilingual
+    # late-interaction용: jina-colbert-v2
+    model: "jina-colbert-v2"
+    top_n: 10
+    timeout: 30
+    max_documents: 20
 
-    # Claude Haiku 기반 리랭커 (선택적)
-    openrouter_claude:
-      enabled: false
-      provider: "openrouter"
-      model: "anthropic/claude-haiku-4"
-      api_key: "${OPENROUTER_API_KEY:-}"
+  # Cohere - cross-encoder용
+  cohere:
+    model: "rerank-multilingual-v3.0"
+    top_n: 10
+    timeout: 30
 
-    # ========================================
-    # 향후 지원 예정 (openai-llm 마이그레이션 예정)
-    # ========================================
-
-    # GPT-5-nano 리랭커 (openai-llm 프로바이더로 마이그레이션 예정)
-    gpt5_nano:
-      enabled: false  # openai-llm 프로바이더 구현 후 활성화 예정
-      model: "gpt-5-nano"
-      api_key: "${OPENAI_API_KEY:-}"
-
-    # ========================================
-    # 전문 리랭커 서비스 (Fallback용)
-    # ========================================
-
-    # Jina 리랭커 (폴백용)
-    jina:
-      enabled: true
-      model: "jina-reranker-v2-base-multilingual"
-      api_key: "${JINA_API_KEY}"
-      timeout: 30  # HTTP API 호출이 많아 타임아웃 길게 설정
-
-    # Cohere 리랭커 (비활성화)
-    cohere:
-      enabled: false
-      model: "rerank-multilingual-v3.0"
-      api_key: "${COHERE_API_KEY}"
+# ========================================
+# approach 선택 가이드
+# ========================================
+#
+# 🎯 빠른 응답 필요 (실시간 채팅):
+#   → approach: late-interaction, provider: jina
+#   → 토큰 레벨 매칭으로 빠르면서 정확
+#
+# 🧠 깊은 이해 필요 (복잡한 질문):
+#   → approach: llm, provider: google
+#   → LLM의 언어 이해력 활용
+#
+# ⚖️ 균형 (일반 검색):
+#   → approach: cross-encoder, provider: jina
+#   → 전용 리랭커로 안정적 품질
