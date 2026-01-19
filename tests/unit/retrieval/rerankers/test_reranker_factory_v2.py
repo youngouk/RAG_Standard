@@ -13,7 +13,7 @@ class TestRerankerFactoryV2Registry:
 
     def test_approach_registry_exists(self):
         """approach별 리랭커 레지스트리 존재 확인"""
-        from app.modules.core.retrieval.rerankers.factory_v2 import APPROACH_REGISTRY
+        from app.modules.core.retrieval.rerankers.factory import APPROACH_REGISTRY
 
         assert "llm" in APPROACH_REGISTRY
         assert "cross-encoder" in APPROACH_REGISTRY
@@ -21,7 +21,7 @@ class TestRerankerFactoryV2Registry:
 
     def test_provider_registry_exists(self):
         """provider별 리랭커 레지스트리 존재 확인"""
-        from app.modules.core.retrieval.rerankers.factory_v2 import PROVIDER_REGISTRY
+        from app.modules.core.retrieval.rerankers.factory import PROVIDER_REGISTRY
 
         assert "google" in PROVIDER_REGISTRY
         assert "openai" in PROVIDER_REGISTRY
@@ -34,7 +34,7 @@ class TestRerankerFactoryV2Create:
     @patch.dict("os.environ", {"GOOGLE_API_KEY": "test-key"})
     def test_create_llm_google(self):
         """LLM approach + Google provider 리랭커 생성"""
-        from app.modules.core.retrieval.rerankers.factory_v2 import RerankerFactoryV2
+        from app.modules.core.retrieval.rerankers.factory import RerankerFactoryV2
 
         config = {
             "reranking": {
@@ -52,7 +52,7 @@ class TestRerankerFactoryV2Create:
     @patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"})
     def test_create_llm_openai(self):
         """LLM approach + OpenAI provider 리랭커 생성"""
-        from app.modules.core.retrieval.rerankers.factory_v2 import RerankerFactoryV2
+        from app.modules.core.retrieval.rerankers.factory import RerankerFactoryV2
 
         config = {
             "reranking": {
@@ -69,7 +69,7 @@ class TestRerankerFactoryV2Create:
     @patch.dict("os.environ", {"JINA_API_KEY": "test-key"})
     def test_create_cross_encoder_jina(self):
         """Cross-encoder approach + Jina provider 리랭커 생성"""
-        from app.modules.core.retrieval.rerankers.factory_v2 import RerankerFactoryV2
+        from app.modules.core.retrieval.rerankers.factory import RerankerFactoryV2
 
         config = {
             "reranking": {
@@ -86,7 +86,7 @@ class TestRerankerFactoryV2Create:
     @patch.dict("os.environ", {"JINA_API_KEY": "test-key"})
     def test_create_late_interaction_jina(self):
         """Late-interaction approach + Jina provider 리랭커 생성"""
-        from app.modules.core.retrieval.rerankers.factory_v2 import RerankerFactoryV2
+        from app.modules.core.retrieval.rerankers.factory import RerankerFactoryV2
 
         config = {
             "reranking": {
@@ -102,7 +102,7 @@ class TestRerankerFactoryV2Create:
 
     def test_create_with_invalid_approach_raises_error(self):
         """유효하지 않은 approach 시 에러"""
-        from app.modules.core.retrieval.rerankers.factory_v2 import RerankerFactoryV2
+        from app.modules.core.retrieval.rerankers.factory import RerankerFactoryV2
 
         config = {
             "reranking": {
@@ -115,7 +115,7 @@ class TestRerankerFactoryV2Create:
 
     def test_create_with_invalid_combination_raises_error(self):
         """유효하지 않은 approach-provider 조합 시 에러"""
-        from app.modules.core.retrieval.rerankers.factory_v2 import RerankerFactoryV2
+        from app.modules.core.retrieval.rerankers.factory import RerankerFactoryV2
 
         config = {
             "reranking": {
@@ -129,7 +129,7 @@ class TestRerankerFactoryV2Create:
     @patch.dict("os.environ", {}, clear=True)
     def test_create_without_api_key_raises_error(self):
         """API 키 없이 생성 시 에러"""
-        from app.modules.core.retrieval.rerankers.factory_v2 import RerankerFactoryV2
+        from app.modules.core.retrieval.rerankers.factory import RerankerFactoryV2
 
         # 환경변수 전부 제거 후 테스트
         import os
@@ -160,7 +160,7 @@ class TestRerankerFactoryV2Helpers:
 
     def test_get_approaches(self):
         """지원하는 approach 목록 조회"""
-        from app.modules.core.retrieval.rerankers.factory_v2 import RerankerFactoryV2
+        from app.modules.core.retrieval.rerankers.factory import RerankerFactoryV2
 
         approaches = RerankerFactoryV2.get_approaches()
         assert "llm" in approaches
@@ -169,7 +169,7 @@ class TestRerankerFactoryV2Helpers:
 
     def test_get_providers_for_approach(self):
         """approach별 유효한 provider 목록 조회"""
-        from app.modules.core.retrieval.rerankers.factory_v2 import RerankerFactoryV2
+        from app.modules.core.retrieval.rerankers.factory import RerankerFactoryV2
 
         llm_providers = RerankerFactoryV2.get_providers_for_approach("llm")
         assert "google" in llm_providers
@@ -182,7 +182,7 @@ class TestRerankerFactoryV2Helpers:
 
     def test_get_approach_description(self):
         """approach 설명 조회"""
-        from app.modules.core.retrieval.rerankers.factory_v2 import RerankerFactoryV2
+        from app.modules.core.retrieval.rerankers.factory import RerankerFactoryV2
 
         desc = RerankerFactoryV2.get_approach_description("llm")
         assert "LLM" in desc or "언어" in desc
@@ -195,7 +195,7 @@ class TestRerankerFactoryV2Helpers:
 
     def test_get_all_providers(self):
         """모든 provider 목록 조회"""
-        from app.modules.core.retrieval.rerankers.factory_v2 import RerankerFactoryV2
+        from app.modules.core.retrieval.rerankers.factory import RerankerFactoryV2
 
         providers = RerankerFactoryV2.get_all_providers()
         assert "google" in providers

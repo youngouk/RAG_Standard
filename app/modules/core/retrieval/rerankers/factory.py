@@ -1,23 +1,24 @@
 """
-RerankerFactory - 설정 기반 리랭커 자동 선택 팩토리
+RerankerFactory v2 - 3단계 계층 구조 기반 리랭커 팩토리
 
-YAML 설정에 따라 적절한 리랭커 인스턴스를 생성합니다.
-판매용 RAG 모듈에서 고객 환경에 맞게 리랭커를 쉽게 교체할 수 있도록 지원합니다.
+approach/provider/model 구조로 리랭커를 생성합니다.
+
+approach별 설명:
+- llm: 범용 LLM을 사용한 리랭킹 (Gemini, GPT 등)
+- cross-encoder: 쿼리+문서를 함께 인코딩하는 전용 리랭커 (Jina Reranker, Cohere)
+- late-interaction: 토큰 레벨 상호작용 (ColBERT)
 
 사용 예시:
-    from app.modules.core.retrieval.rerankers import RerankerFactory
+    from app.modules.core.retrieval.rerankers.factory_v2 import RerankerFactoryV2
 
-    # YAML 설정 기반 리랭커 생성
-    reranker = RerankerFactory.create(config)
-
-    # 지원 리랭커 조회
-    RerankerFactory.get_supported_rerankers()
-    RerankerFactory.list_rerankers_by_type("llm")
-
-지원 리랭커:
-    - gemini-flash: Google Gemini Flash Lite 기반 LLM 리랭커 (빠름, 고품질)
-    - jina: Jina AI Reranker API (다국어 지원, 균형잡힌 성능)
-    - jina-colbert: Jina ColBERT v2 Late-Interaction 리랭커 (토큰 수준 정밀 매칭)
+    config = {
+        "reranking": {
+            "approach": "cross-encoder",
+            "provider": "jina",
+            "jina": {"model": "jina-reranker-v2-base-multilingual"}
+        }
+    }
+    reranker = RerankerFactoryV2.create(config)
 """
 
 import os
@@ -33,27 +34,38 @@ from .openai_llm_reranker import OpenAILLMReranker
 logger = get_logger(__name__)
 
 
-# 지원 리랭커 레지스트리
-# 새 리랭커 추가 시 여기에 등록
-SUPPORTED_RERANKERS: dict[str, dict[str, Any]] = {
-    # LLM 기반 리랭커 (고품질, 빠름)
-    "gemini-flash": {
-        "type": "llm",
-        "class": "GeminiFlashReranker",
-        "description": "Google Gemini Flash Lite 기반 LLM 리랭커 (빠름, 고품질)",
-        "requires_api_key": "GOOGLE_API_KEY",
+# ========================================
+# 레지스트리 정의
+# ========================================
+
+APPROACH_REGISTRY: dict[str, dict[str, Any]] = {
+    "llm": {
+        "description": "범용 LLM을 사용한 리랭킹 (언어 이해력 기반)",
+        "providers": ["google", "openai", "openrouter"],
+    },
+    "cross-encoder": {
+        "description": "Cross-Encoder 전용 리랭커 (쿼리+문서 쌍 인코딩)",
+        "providers": ["jina", "cohere"],
+    },
+    "late-interaction": {
+        "description": "Late-Interaction 리랭커 (토큰 레벨 상호작용, ColBERT)",
+        "providers": ["jina"],
+    },
+}
+
+PROVIDER_REGISTRY: dict[str, dict[str, Any]] = {
+    "google": {
+        "class": GeminiFlashReranker,
+        "api_key_env": "GOOGLE_API_KEY",
         "default_config": {
             "model": "gemini-flash-lite-latest",
             "max_documents": 20,
             "timeout": 15,
         },
     },
-    # OpenAI LLM 기반 리랭커 (모델 설정 가능)
-    "openai-llm": {
-        "type": "llm",
-        "class": "OpenAILLMReranker",
-        "description": "OpenAI 모델 기반 LLM 리랭커 (gpt-5-nano, gpt-4o-mini 등)",
-        "requires_api_key": "OPENAI_API_KEY",
+    "openai": {
+        "class": OpenAILLMReranker,
+        "api_key_env": "OPENAI_API_KEY",
         "default_config": {
             "model": "gpt-5-nano",
             "max_documents": 20,
@@ -62,52 +74,54 @@ SUPPORTED_RERANKERS: dict[str, dict[str, Any]] = {
             "reasoning_effort": "minimal",
         },
     },
-    # API 기반 리랭커 (균형)
     "jina": {
-        "type": "api",
-        "class": "JinaReranker",
-        "description": "Jina AI Reranker API (다국어 지원, 균형잡힌 성능)",
-        "requires_api_key": "JINA_API_KEY",
+        "class_cross_encoder": JinaReranker,
+        "class_late_interaction": JinaColBERTReranker,
+        "api_key_env": "JINA_API_KEY",
         "default_config": {
             "model": "jina-reranker-v2-base-multilingual",
-            "endpoint": "https://api.jina.ai/v1/rerank",
-            "timeout": 30.0,
+            "top_n": 10,
+            "timeout": 30,
+            "max_documents": 20,
         },
-    },
-    # ColBERT 기반 리랭커 (토큰 수준 정밀도)
-    "jina-colbert": {
-        "type": "colbert",
-        "class": "JinaColBERTReranker",
-        "description": "Jina ColBERT v2 Late-Interaction 리랭커 (토큰 수준 정밀 매칭)",
-        "requires_api_key": "JINA_API_KEY",
-        "default_config": {
+        "default_config_colbert": {
             "model": "jina-colbert-v2",
             "top_n": 10,
             "timeout": 10,
             "max_documents": 20,
         },
     },
+    "cohere": {
+        "class": None,  # CohereReranker 구현 시 추가
+        "api_key_env": "COHERE_API_KEY",
+        "default_config": {
+            "model": "rerank-multilingual-v3.0",
+            "top_n": 10,
+        },
+    },
+    "openrouter": {
+        "class": None,  # OpenRouterReranker 구현 시 추가
+        "api_key_env": "OPENROUTER_API_KEY",
+        "default_config": {
+            "model": "google/gemini-2.5-flash-lite",
+            "max_documents": 20,
+            "timeout": 15,
+        },
+    },
 }
 
 
-class RerankerFactory:
+# ========================================
+# Factory 클래스
+# ========================================
+
+
+class RerankerFactoryV2:
     """
-    설정 기반 리랭커 팩토리
+    3단계 계층 구조 기반 리랭커 팩토리
 
-    YAML 설정 파일의 reranking 섹션을 읽어 적절한 리랭커를 생성합니다.
-
-    설정 예시 (features/reranking.yaml):
-        reranking:
-          provider: "gemini-flash"  # gemini-flash, jina, jina-colbert
-          gemini:
-            model: "gemini-flash-lite-latest"
-            max_documents: 20
-            timeout: 15
-          jina:
-            model: "jina-reranker-v2-base-multilingual"
-          colbert:
-            model: "jina-colbert-v2"
-            top_n: 10
+    approach → provider → model 순으로 설정을 해석하여
+    적절한 리랭커 인스턴스를 생성합니다.
     """
 
     @staticmethod
@@ -122,191 +136,333 @@ class RerankerFactory:
             IReranker 인터페이스를 구현한 리랭커 인스턴스
 
         Raises:
-            ValueError: 지원하지 않는 프로바이더인 경우
-            ValueError: 필수 API 키가 없는 경우
+            ValueError: 유효하지 않은 approach-provider 조합 또는 API 키 누락
         """
         reranking_config = config.get("reranking", {})
-        provider = reranking_config.get("provider", "gemini-flash")
+        approach = reranking_config.get("approach", "cross-encoder")
+        provider = reranking_config.get("provider", "jina")
 
-        logger.info(f"🔄 RerankerFactory: provider={provider}")
+        logger.info(f"🔄 RerankerFactoryV2: approach={approach}, provider={provider}")
 
-        if provider not in SUPPORTED_RERANKERS:
-            supported = list(SUPPORTED_RERANKERS.keys())
+        # approach 검증
+        if approach not in APPROACH_REGISTRY:
             raise ValueError(
-                f"지원하지 않는 리랭커 프로바이더: {provider}. "
-                f"지원 목록: {supported}"
+                f"지원하지 않는 approach: {approach}. "
+                f"지원 목록: {list(APPROACH_REGISTRY.keys())}"
             )
 
-        if provider == "gemini-flash":
-            return RerankerFactory._create_gemini_reranker(config, reranking_config)
-        elif provider == "jina":
-            return RerankerFactory._create_jina_reranker(config, reranking_config)
-        elif provider == "jina-colbert":
-            return RerankerFactory._create_colbert_reranker(config, reranking_config)
-        elif provider == "openai-llm":
-            return RerankerFactory._create_openai_llm_reranker(config, reranking_config)
+        # approach-provider 조합 검증
+        valid_providers = APPROACH_REGISTRY[approach]["providers"]
+        if provider not in valid_providers:
+            raise ValueError(
+                f"approach '{approach}'에서 provider '{provider}'는 사용할 수 없습니다. "
+                f"유효한 provider: {valid_providers}"
+            )
+
+        # provider 검증
+        if provider not in PROVIDER_REGISTRY:
+            raise ValueError(
+                f"지원하지 않는 provider: {provider}. "
+                f"지원 목록: {list(PROVIDER_REGISTRY.keys())}"
+            )
+
+        # 리랭커 생성
+        if approach == "llm":
+            return RerankerFactoryV2._create_llm_reranker(provider, reranking_config)
+        elif approach == "cross-encoder":
+            return RerankerFactoryV2._create_cross_encoder_reranker(
+                provider, reranking_config
+            )
+        elif approach == "late-interaction":
+            return RerankerFactoryV2._create_late_interaction_reranker(
+                provider, reranking_config
+            )
         else:
-            # SUPPORTED_RERANKERS 검사 통과 후 여기 도달 불가 (안전장치)
-            raise ValueError(f"지원하지 않는 리랭커 프로바이더: {provider}")
+            raise ValueError(f"알 수 없는 approach: {approach}")
 
     @staticmethod
-    def _create_gemini_reranker(
-        config: dict[str, Any], reranking_config: dict[str, Any]
-    ) -> GeminiFlashReranker:
-        """Gemini Flash 리랭커 생성"""
-        gemini_config = reranking_config.get("gemini", {})
-        defaults = SUPPORTED_RERANKERS["gemini-flash"]["default_config"]
+    def _create_llm_reranker(provider: str, config: dict[str, Any]) -> IReranker:
+        """LLM approach 리랭커 생성"""
+        provider_info = PROVIDER_REGISTRY[provider]
+        api_key = os.getenv(provider_info["api_key_env"])
 
-        # API 키 확인
-        api_key = os.getenv("GOOGLE_API_KEY")
         if not api_key:
-            raise ValueError("GOOGLE_API_KEY 환경변수가 설정되지 않았습니다.")
+            raise ValueError(
+                f"{provider_info['api_key_env']} 환경변수가 설정되지 않았습니다. "
+                f"API key가 필요합니다."
+            )
 
-        # 설정값 추출 (기본값 폴백)
-        model = gemini_config.get("model", defaults["model"])
-        max_documents = gemini_config.get("max_documents", defaults["max_documents"])
-        timeout = gemini_config.get("timeout", defaults["timeout"])
+        provider_config = config.get(provider, {})
+        defaults = provider_info["default_config"]
 
-        reranker = GeminiFlashReranker(
-            api_key=api_key,
-            model=model,
-            max_documents=max_documents,
-            timeout=timeout,
-        )
+        if provider == "google":
+            reranker = GeminiFlashReranker(
+                api_key=api_key,
+                model=provider_config.get("model", defaults["model"]),
+                max_documents=provider_config.get(
+                    "max_documents", defaults["max_documents"]
+                ),
+                timeout=provider_config.get("timeout", defaults["timeout"]),
+            )
+        elif provider == "openai":
+            reranker = OpenAILLMReranker(
+                api_key=api_key,
+                model=provider_config.get("model", defaults["model"]),
+                max_documents=provider_config.get(
+                    "max_documents", defaults["max_documents"]
+                ),
+                timeout=provider_config.get("timeout", defaults["timeout"]),
+                verbosity=provider_config.get("verbosity", defaults["verbosity"]),
+                reasoning_effort=provider_config.get(
+                    "reasoning_effort", defaults["reasoning_effort"]
+                ),
+            )
+        else:
+            raise ValueError(
+                f"LLM approach에서 {provider}는 아직 지원되지 않습니다."
+            )
 
-        logger.info(
-            f"✅ GeminiFlashReranker 생성: model={model}, "
-            f"max_documents={max_documents}, timeout={timeout}"
-        )
+        logger.info(f"✅ {reranker.__class__.__name__} 생성 완료")
         return reranker
 
     @staticmethod
-    def _create_jina_reranker(
-        config: dict[str, Any], reranking_config: dict[str, Any]
-    ) -> JinaReranker:
-        """Jina 리랭커 생성"""
-        jina_config = reranking_config.get("jina", {})
-        defaults = SUPPORTED_RERANKERS["jina"]["default_config"]
+    def _create_cross_encoder_reranker(
+        provider: str, config: dict[str, Any]
+    ) -> IReranker:
+        """Cross-encoder approach 리랭커 생성"""
+        provider_info = PROVIDER_REGISTRY[provider]
+        api_key = os.getenv(provider_info["api_key_env"])
 
-        # API 키 확인
-        api_key = os.getenv("JINA_API_KEY")
         if not api_key:
-            raise ValueError("JINA_API_KEY 환경변수가 설정되지 않았습니다.")
+            raise ValueError(
+                f"{provider_info['api_key_env']} 환경변수가 설정되지 않았습니다. "
+                f"API key가 필요합니다."
+            )
 
-        # 설정값 추출 (기본값 폴백)
-        # 주의: JinaReranker는 top_n을 생성자에서 받지 않음 (rerank 메서드에서 처리)
-        model = jina_config.get("model", defaults["model"])
-        endpoint = jina_config.get("endpoint", defaults["endpoint"])
-        timeout = jina_config.get("timeout", defaults["timeout"])
+        provider_config = config.get(provider, {})
+        defaults = provider_info["default_config"]
 
-        reranker = JinaReranker(
-            api_key=api_key,
-            model=model,
-            endpoint=endpoint,
-            timeout=timeout,
-        )
+        if provider == "jina":
+            reranker = JinaReranker(
+                api_key=api_key,
+                model=provider_config.get("model", defaults["model"]),
+                timeout=provider_config.get("timeout", defaults.get("timeout", 30)),
+            )
+        else:
+            raise ValueError(
+                f"Cross-encoder approach에서 {provider}는 아직 지원되지 않습니다."
+            )
 
-        logger.info(
-            f"✅ JinaReranker 생성: model={model}, endpoint={endpoint}"
-        )
+        logger.info(f"✅ {reranker.__class__.__name__} 생성 완료")
         return reranker
 
     @staticmethod
-    def _create_colbert_reranker(
-        config: dict[str, Any], reranking_config: dict[str, Any]
-    ) -> JinaColBERTReranker:
-        """Jina ColBERT 리랭커 생성"""
-        colbert_config = reranking_config.get("colbert", {})
-        defaults = SUPPORTED_RERANKERS["jina-colbert"]["default_config"]
+    def _create_late_interaction_reranker(
+        provider: str, config: dict[str, Any]
+    ) -> IReranker:
+        """Late-interaction approach 리랭커 생성"""
+        provider_info = PROVIDER_REGISTRY[provider]
+        api_key = os.getenv(provider_info["api_key_env"])
 
-        # API 키 확인
-        api_key = os.getenv("JINA_API_KEY")
         if not api_key:
-            raise ValueError("JINA_API_KEY 환경변수가 설정되지 않았습니다.")
+            raise ValueError(
+                f"{provider_info['api_key_env']} 환경변수가 설정되지 않았습니다. "
+                f"API key가 필요합니다."
+            )
 
-        # ColBERTRerankerConfig dataclass로 설정 생성
-        reranker_config = ColBERTRerankerConfig(
-            enabled=True,
-            api_key=api_key,
-            model=colbert_config.get("model", defaults["model"]),
-            timeout=colbert_config.get("timeout", defaults["timeout"]),
-            max_documents=colbert_config.get("max_documents", defaults["max_documents"]),
+        provider_config = config.get(provider, {})
+        defaults = provider_info.get(
+            "default_config_colbert", provider_info["default_config"]
         )
 
-        reranker = JinaColBERTReranker(config=reranker_config)
+        if provider == "jina":
+            colbert_config = ColBERTRerankerConfig(
+                enabled=True,
+                api_key=api_key,
+                model=provider_config.get("model", defaults["model"]),
+                timeout=provider_config.get("timeout", defaults.get("timeout", 10)),
+                max_documents=provider_config.get(
+                    "max_documents", defaults.get("max_documents", 20)
+                ),
+            )
+            reranker = JinaColBERTReranker(config=colbert_config)
+        else:
+            raise ValueError(
+                f"Late-interaction approach에서 {provider}는 아직 지원되지 않습니다."
+            )
 
-        logger.info(
-            f"✅ JinaColBERTReranker 생성: model={reranker_config.model}, "
-            f"max_documents={reranker_config.max_documents}"
-        )
+        logger.info(f"✅ {reranker.__class__.__name__} 생성 완료")
         return reranker
+
+    # ========================================
+    # 헬퍼 메서드
+    # ========================================
 
     @staticmethod
-    def _create_openai_llm_reranker(
-        config: dict[str, Any], reranking_config: dict[str, Any]
-    ) -> OpenAILLMReranker:
-        """OpenAI LLM 리랭커 생성"""
-        openai_config = reranking_config.get("openai_llm", {})
-        defaults = SUPPORTED_RERANKERS["openai-llm"]["default_config"]
+    def get_approaches() -> list[str]:
+        """지원하는 approach 목록 반환"""
+        return list(APPROACH_REGISTRY.keys())
 
-        # API 키 확인
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise ValueError("OPENAI_API_KEY 환경변수가 설정되지 않았습니다.")
+    @staticmethod
+    def get_providers_for_approach(approach: str) -> list[str]:
+        """특정 approach에서 사용 가능한 provider 목록 반환"""
+        if approach not in APPROACH_REGISTRY:
+            return []
+        return APPROACH_REGISTRY[approach]["providers"]
 
-        # 설정값 추출 (기본값 폴백)
-        model = openai_config.get("model", defaults["model"])
-        max_documents = openai_config.get("max_documents", defaults["max_documents"])
-        timeout = openai_config.get("timeout", defaults["timeout"])
-        verbosity = openai_config.get("verbosity", defaults["verbosity"])
-        reasoning_effort = openai_config.get("reasoning_effort", defaults["reasoning_effort"])
+    @staticmethod
+    def get_approach_description(approach: str) -> str:
+        """approach 설명 반환"""
+        if approach not in APPROACH_REGISTRY:
+            return "알 수 없는 approach"
+        return APPROACH_REGISTRY[approach]["description"]
 
-        reranker = OpenAILLMReranker(
-            api_key=api_key,
-            model=model,
-            max_documents=max_documents,
-            timeout=timeout,
-            verbosity=verbosity,
-            reasoning_effort=reasoning_effort,
+    @staticmethod
+    def get_all_providers() -> list[str]:
+        """모든 provider 목록 반환"""
+        return list(PROVIDER_REGISTRY.keys())
+
+
+# ========================================
+# 레거시 호환 코드
+# ========================================
+
+# 레거시 SUPPORTED_RERANKERS 별칭 (기존 코드 호환용)
+SUPPORTED_RERANKERS: dict[str, dict[str, Any]] = {
+    "gemini-flash": {
+        "type": "llm",
+        "class": "GeminiFlashReranker",
+        "description": "Google Gemini Flash Lite 기반 LLM 리랭커",
+        "requires_api_key": "GOOGLE_API_KEY",
+        "approach": "llm",
+        "provider": "google",
+        "default_config": {
+            "model": "gemini-flash-lite-latest",
+            "max_documents": 20,
+            "timeout": 15,
+        },
+    },
+    "openai-llm": {
+        "type": "llm",
+        "class": "OpenAILLMReranker",
+        "description": "OpenAI 모델 기반 LLM 리랭커",
+        "requires_api_key": "OPENAI_API_KEY",
+        "approach": "llm",
+        "provider": "openai",
+        "default_config": {
+            "model": "gpt-5-nano",
+            "max_documents": 20,
+            "timeout": 15,
+            "verbosity": "low",
+            "reasoning_effort": "minimal",
+        },
+    },
+    "jina": {
+        "type": "api",
+        "class": "JinaReranker",
+        "description": "Jina AI Reranker API",
+        "requires_api_key": "JINA_API_KEY",
+        "approach": "cross-encoder",
+        "provider": "jina",
+        "default_config": {
+            "model": "jina-reranker-v2-base-multilingual",
+            "endpoint": "https://api.jina.ai/v1/rerank",
+            "timeout": 30.0,
+        },
+    },
+    "jina-colbert": {
+        "type": "colbert",
+        "class": "JinaColBERTReranker",
+        "description": "Jina ColBERT v2 Late-Interaction 리랭커",
+        "requires_api_key": "JINA_API_KEY",
+        "approach": "late-interaction",
+        "provider": "jina",
+        "default_config": {
+            "model": "jina-colbert-v2",
+            "top_n": 10,
+            "timeout": 10,
+            "max_documents": 20,
+        },
+    },
+}
+
+
+class RerankerFactory:
+    """
+    레거시 호환용 RerankerFactory
+
+    새 코드에서는 RerankerFactoryV2 사용을 권장합니다.
+    이 클래스는 기존 코드와의 호환성을 위해 유지됩니다.
+    """
+
+    @staticmethod
+    def create(config: dict[str, Any]) -> IReranker:
+        """
+        레거시 설정 기반 리랭커 생성
+
+        Args:
+            config: 전체 설정 딕셔너리
+
+        Returns:
+            IReranker 인스턴스
+        """
+        reranking_config = config.get("reranking", {})
+
+        # 새 설정 구조(approach/provider)가 있으면 v2 팩토리 사용
+        if "approach" in reranking_config:
+            return RerankerFactoryV2.create(config)
+
+        # 레거시 설정 구조 처리 (default_provider 또는 provider 필드)
+        # 레거시 기본값은 gemini-flash였음
+        default_provider = reranking_config.get(
+            "default_provider",
+            reranking_config.get("provider", "gemini-flash")
         )
 
-        logger.info(
-            f"✅ OpenAILLMReranker 생성: model={model}, "
-            f"max_documents={max_documents}, timeout={timeout}"
-        )
-        return reranker
+        # 레거시 provider를 새 approach/provider로 변환
+        legacy_mapping = {
+            "gemini-flash": ("llm", "google"),
+            "gemini_flash": ("llm", "google"),
+            "openai-llm": ("llm", "openai"),
+            "openai_llm": ("llm", "openai"),
+            "jina": ("cross-encoder", "jina"),
+            "jina-colbert": ("late-interaction", "jina"),
+            "jina_colbert": ("late-interaction", "jina"),
+        }
+
+        if default_provider in legacy_mapping:
+            approach, provider = legacy_mapping[default_provider]
+
+            # 레거시 openai_llm 설정을 새 openai 설정으로 변환
+            openai_config = reranking_config.get("openai_llm", {})
+
+            new_config = {
+                "reranking": {
+                    **reranking_config,
+                    "approach": approach,
+                    "provider": provider,
+                    "openai": openai_config if openai_config else None,
+                }
+            }
+            return RerankerFactoryV2.create(new_config)
+
+        raise ValueError(f"지원하지 않는 리랭커: {default_provider}")
 
     @staticmethod
     def get_supported_rerankers() -> list[str]:
-        """지원하는 모든 리랭커 이름 반환"""
+        """지원하는 리랭커 목록 반환"""
         return list(SUPPORTED_RERANKERS.keys())
 
     @staticmethod
     def list_rerankers_by_type(reranker_type: str) -> list[str]:
-        """
-        타입별 리랭커 목록 반환
-
-        Args:
-            reranker_type: 리랭커 타입 (llm, api, colbert)
-
-        Returns:
-            해당 타입의 리랭커 이름 리스트
-        """
+        """특정 타입의 리랭커 목록 반환"""
         return [
             name
             for name, info in SUPPORTED_RERANKERS.items()
-            if info["type"] == reranker_type
+            if info.get("type") == reranker_type
         ]
 
     @staticmethod
     def get_reranker_info(name: str) -> dict[str, Any] | None:
-        """
-        특정 리랭커의 상세 정보 반환
-
-        Args:
-            name: 리랭커 이름
-
-        Returns:
-            리랭커 정보 딕셔너리 또는 None
-        """
+        """특정 리랭커 정보 반환"""
         return SUPPORTED_RERANKERS.get(name)

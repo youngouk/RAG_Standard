@@ -1,180 +1,222 @@
 """
-Reranking (리랭킹) 설정 스키마
+Reranking 설정 스키마 v2.0
 
-검색된 문서의 관련성 재평가 및 순위 조정 설정을 정의합니다.
+3단계 계층 구조:
+- approach: 리랭킹 기술 방식 (llm, cross-encoder, late-interaction)
+- provider: 서비스 제공자 (google, openai, jina, cohere, openrouter)
+- model: 개별 provider 설정에서 지정
+
+approach-provider 유효 조합:
+- llm: google, openai, openrouter (LLM 기반 리랭킹)
+- cross-encoder: jina, cohere (전용 리랭킹 API)
+- late-interaction: jina (ColBERT 방식)
 """
 
-from pydantic import Field, field_validator
+from typing import Literal
+
+from pydantic import Field, model_validator
 
 from .base import BaseConfig
 
 
-class RerankingDefaultsConfig(BaseConfig):
-    """
-    리랭킹 기본값 설정
+# ========================================
+# Provider별 설정 스키마
+# ========================================
 
-    모든 LLM 기반 리랭커에 적용되는 공통 기본값입니다.
-    """
 
+class GoogleProviderConfig(BaseConfig):
+    """Google (Gemini) provider 설정"""
+
+    model: str = Field(
+        default="gemini-flash-lite-latest",
+        description="Gemini 모델명",
+    )
     max_documents: int = Field(
         default=20,
         ge=1,
         le=100,
-        description="리랭킹할 최대 문서 수 (1-100)",
+        description="리랭킹할 최대 문서 수",
     )
-
     timeout: int = Field(
         default=15,
         ge=5,
         le=60,
-        description="리랭킹 타임아웃 (초, 5-60)",
-    )
-
-    verbosity: str = Field(
-        default="low",
-        pattern="^(low|medium|high)$",
-        description="리랭킹 상세도 (low, medium, high)",
-    )
-
-    reasoning_effort: str = Field(
-        default="minimal",
-        pattern="^(minimal|moderate|extensive)$",
-        description="추론 노력 수준 (minimal, moderate, extensive)",
-    )
-
-    max_completion_tokens: int = Field(
-        default=15000,
-        ge=1000,
-        le=30000,
-        description="최대 완성 토큰 수 (1000-30000)",
+        description="타임아웃 (초)",
     )
 
 
-class RerankingProviderConfig(BaseConfig):
-    """
-    개별 리랭커 제공자 설정
-
-    각 리랭커의 활성화 여부, 모델, API 키 등을 정의합니다.
-    """
-
-    enabled: bool = Field(
-        default=False,
-        description="리랭커 활성화 여부",
-    )
+class OpenAIProviderConfig(BaseConfig):
+    """OpenAI provider 설정"""
 
     model: str = Field(
-        default="",
-        description="리랭커 모델명",
+        default="gpt-5-nano",
+        description="OpenAI 모델명",
     )
-
-    api_key: str | None = Field(
-        default=None,
-        description="API 키 (환경 변수 치환 가능)",
-    )
-
-    # Provider 특화 필드 (선택적)
-    provider: str | None = Field(
-        default=None,
-        description="LLM 제공자 (llm 리랭커 전용)",
-    )
-
-    timeout: int | None = Field(
-        default=None,
-        ge=5,
-        le=120,
-        description="개별 타임아웃 (초, 5-120, None이면 defaults 사용)",
-    )
-
-    max_documents: int | None = Field(
-        default=None,
+    max_documents: int = Field(
+        default=20,
         ge=1,
         le=100,
-        description="개별 최대 문서 수 (1-100, None이면 defaults 사용)",
+        description="리랭킹할 최대 문서 수",
+    )
+    timeout: int = Field(
+        default=15,
+        ge=5,
+        le=60,
+        description="타임아웃 (초)",
+    )
+    verbosity: Literal["low", "medium", "high"] = Field(
+        default="low",
+        description="응답 상세도",
+    )
+    reasoning_effort: Literal["minimal", "moderate", "extensive"] = Field(
+        default="minimal",
+        description="추론 노력 수준",
     )
 
-    verbosity: str | None = Field(
-        default=None,
-        pattern="^(low|medium|high)$",
-        description="개별 상세도 (None이면 defaults 사용)",
+
+class JinaProviderConfig(BaseConfig):
+    """Jina provider 설정 (cross-encoder, late-interaction 공용)"""
+
+    model: str = Field(
+        default="jina-reranker-v2-base-multilingual",
+        description="Jina 모델명 (jina-reranker-* 또는 jina-colbert-*)",
+    )
+    top_n: int = Field(
+        default=10,
+        ge=1,
+        le=100,
+        description="반환할 상위 결과 수",
+    )
+    timeout: int = Field(
+        default=30,
+        ge=5,
+        le=120,
+        description="타임아웃 (초)",
+    )
+    max_documents: int = Field(
+        default=20,
+        ge=1,
+        le=100,
+        description="리랭킹할 최대 문서 수",
     )
 
-    reasoning_effort: str | None = Field(
-        default=None,
-        pattern="^(minimal|moderate|extensive)$",
-        description="개별 추론 노력 (None이면 defaults 사용)",
+
+class CohereProviderConfig(BaseConfig):
+    """Cohere provider 설정"""
+
+    model: str = Field(
+        default="rerank-multilingual-v3.0",
+        description="Cohere 모델명",
+    )
+    top_n: int = Field(
+        default=10,
+        ge=1,
+        le=100,
+        description="반환할 상위 결과 수",
+    )
+    timeout: int = Field(
+        default=30,
+        ge=5,
+        le=120,
+        description="타임아웃 (초)",
     )
 
 
-class RerankingConfig(BaseConfig):
+class OpenRouterProviderConfig(BaseConfig):
+    """OpenRouter provider 설정"""
+
+    model: str = Field(
+        default="google/gemini-2.5-flash-lite",
+        description="OpenRouter 모델명 (provider/model 형식)",
+    )
+    max_documents: int = Field(
+        default=20,
+        ge=1,
+        le=100,
+        description="리랭킹할 최대 문서 수",
+    )
+    timeout: int = Field(
+        default=15,
+        ge=5,
+        le=60,
+        description="타임아웃 (초)",
+    )
+
+
+# ========================================
+# 메인 설정 스키마
+# ========================================
+
+# approach-provider 유효 조합 정의
+VALID_APPROACH_PROVIDERS: dict[str, list[str]] = {
+    "llm": ["google", "openai", "openrouter"],
+    "cross-encoder": ["jina", "cohere"],
+    "late-interaction": ["jina"],
+}
+
+
+class RerankingConfigV2(BaseConfig):
     """
-    리랭킹 시스템 설정
+    Reranking 설정 v2.0 - 3단계 계층 구조
 
-    리랭킹 활성화, 기본 제공자, 최소 점수, 제공자별 설정을 정의합니다.
+    예시:
+        reranking:
+          enabled: true
+          approach: "cross-encoder"
+          provider: "jina"
+          jina:
+            model: "jina-reranker-v2-base-multilingual"
+            top_n: 10
     """
 
     enabled: bool = Field(
         default=True,
-        description="리랭킹 시스템 활성화 여부",
+        description="리랭킹 활성화 여부",
     )
 
-    default_provider: str = Field(
-        default="gemini_flash",
-        pattern="^(gemini_flash|llm|gpt5_nano|jina|cohere|openrouter_gemini)$",
-        description="기본 리랭커 제공자 (gemini_flash, llm, gpt5_nano, jina, cohere, openrouter_gemini)",
+    approach: Literal["llm", "cross-encoder", "late-interaction"] = Field(
+        default="cross-encoder",
+        description="리랭킹 기술 방식",
     )
 
-    min_score: float = Field(
-        default=0.05,
-        ge=0.0,
-        le=1.0,
-        description="리랭킹 후 최소 점수 (0.0-1.0)",
+    provider: Literal["google", "openai", "jina", "cohere", "openrouter"] = Field(
+        default="jina",
+        description="서비스 제공자",
     )
 
-    # 공통 기본값
-    defaults: RerankingDefaultsConfig = Field(
-        default_factory=RerankingDefaultsConfig,
-        description="모든 리랭커에 적용되는 기본값",
+    # Provider별 설정 (선택적)
+    google: GoogleProviderConfig | None = Field(
+        default=None,
+        description="Google (Gemini) 설정",
+    )
+    openai: OpenAIProviderConfig | None = Field(
+        default=None,
+        description="OpenAI 설정",
+    )
+    jina: JinaProviderConfig | None = Field(
+        default=None,
+        description="Jina 설정",
+    )
+    cohere: CohereProviderConfig | None = Field(
+        default=None,
+        description="Cohere 설정",
+    )
+    openrouter: OpenRouterProviderConfig | None = Field(
+        default=None,
+        description="OpenRouter 설정",
     )
 
-    # 제공자별 설정
-    providers: dict[str, RerankingProviderConfig] = Field(
-        default_factory=dict,
-        description="리랭커 제공자별 설정",
-    )
+    @model_validator(mode="after")
+    def validate_approach_provider_combination(self) -> "RerankingConfigV2":
+        """approach-provider 조합 유효성 검증"""
+        valid_providers = VALID_APPROACH_PROVIDERS.get(self.approach, [])
+        if self.provider not in valid_providers:
+            raise ValueError(
+                f"approach '{self.approach}'에서 provider '{self.provider}'는 사용할 수 없습니다. "
+                f"유효한 provider: {valid_providers}"
+            )
+        return self
 
-    @field_validator("min_score")
-    @classmethod
-    def validate_min_score(cls, v: float) -> float:
-        """
-        최소 점수가 0.0-1.0 범위인지 검증
-        """
-        if not 0.0 <= v <= 1.0:
-            raise ValueError("min_score must be between 0.0 and 1.0")
-        return v
 
-    @field_validator("providers")
-    @classmethod
-    def validate_providers(
-        cls, v: dict[str, RerankingProviderConfig]
-    ) -> dict[str, RerankingProviderConfig]:
-        """
-        제공자 설정 검증
-
-        - 최소 1개 이상의 제공자가 활성화되어 있어야 함
-        - 활성화된 제공자는 model이 필수
-        """
-        if not v:
-            # providers가 비어있으면 그냥 반환 (YAML 로딩 시 설정됨)
-            return v
-
-        enabled_providers = [name for name, config in v.items() if config.enabled]
-
-        if not enabled_providers:
-            raise ValueError("At least one reranking provider must be enabled")
-
-        # 활성화된 제공자는 model 필수
-        for name, config in v.items():
-            if config.enabled and not config.model:
-                raise ValueError(f"Provider '{name}' is enabled but has no model specified")
-
-        return v
+# 하위 호환성을 위한 별칭
+RerankingConfig = RerankingConfigV2

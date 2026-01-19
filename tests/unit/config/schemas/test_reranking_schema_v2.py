@@ -12,7 +12,7 @@ class TestRerankingApproach:
 
     def test_valid_approaches(self):
         """유효한 approach 값 허용"""
-        from app.config.schemas.reranking_v2 import RerankingConfigV2
+        from app.config.schemas.reranking import RerankingConfigV2
 
         # 각 approach에 맞는 유효한 provider와 함께 테스트
         test_cases = [
@@ -26,7 +26,7 @@ class TestRerankingApproach:
 
     def test_invalid_approach_raises_error(self):
         """유효하지 않은 approach 값 거부"""
-        from app.config.schemas.reranking_v2 import RerankingConfigV2
+        from app.config.schemas.reranking import RerankingConfigV2
 
         with pytest.raises(ValidationError):
             RerankingConfigV2(approach="invalid", provider="jina")
@@ -37,7 +37,7 @@ class TestRerankingProvider:
 
     def test_valid_providers(self):
         """유효한 provider 값 허용"""
-        from app.config.schemas.reranking_v2 import RerankingConfigV2
+        from app.config.schemas.reranking import RerankingConfigV2
 
         # 각 provider에 맞는 유효한 approach와 함께 테스트
         test_cases = [
@@ -53,7 +53,7 @@ class TestRerankingProvider:
 
     def test_invalid_provider_raises_error(self):
         """유효하지 않은 provider 값 거부"""
-        from app.config.schemas.reranking_v2 import RerankingConfigV2
+        from app.config.schemas.reranking import RerankingConfigV2
 
         with pytest.raises(ValidationError):
             RerankingConfigV2(approach="llm", provider="invalid")
@@ -64,7 +64,7 @@ class TestApproachProviderCombination:
 
     def test_llm_approach_valid_providers(self):
         """llm approach: google, openai, openrouter만 허용"""
-        from app.config.schemas.reranking_v2 import RerankingConfigV2
+        from app.config.schemas.reranking import RerankingConfigV2
 
         # 유효한 조합
         for provider in ["google", "openai", "openrouter"]:
@@ -73,14 +73,14 @@ class TestApproachProviderCombination:
 
     def test_llm_approach_invalid_provider_raises_error(self):
         """llm approach에서 jina/cohere 사용 시 에러"""
-        from app.config.schemas.reranking_v2 import RerankingConfigV2
+        from app.config.schemas.reranking import RerankingConfigV2
 
         with pytest.raises(ValidationError, match="llm.*jina"):
             RerankingConfigV2(approach="llm", provider="jina")
 
     def test_cross_encoder_approach_valid_providers(self):
         """cross-encoder approach: jina, cohere만 허용"""
-        from app.config.schemas.reranking_v2 import RerankingConfigV2
+        from app.config.schemas.reranking import RerankingConfigV2
 
         for provider in ["jina", "cohere"]:
             config = RerankingConfigV2(approach="cross-encoder", provider=provider)
@@ -88,14 +88,14 @@ class TestApproachProviderCombination:
 
     def test_cross_encoder_approach_invalid_provider_raises_error(self):
         """cross-encoder approach에서 google/openai 사용 시 에러"""
-        from app.config.schemas.reranking_v2 import RerankingConfigV2
+        from app.config.schemas.reranking import RerankingConfigV2
 
         with pytest.raises(ValidationError, match="cross-encoder.*google"):
             RerankingConfigV2(approach="cross-encoder", provider="google")
 
     def test_late_interaction_approach_only_jina(self):
         """late-interaction approach: jina만 허용"""
-        from app.config.schemas.reranking_v2 import RerankingConfigV2
+        from app.config.schemas.reranking import RerankingConfigV2
 
         config = RerankingConfigV2(approach="late-interaction", provider="jina")
         assert config.provider == "jina"
@@ -109,7 +109,7 @@ class TestProviderConfigs:
 
     def test_google_provider_config(self):
         """Google provider 설정 검증"""
-        from app.config.schemas.reranking_v2 import (
+        from app.config.schemas.reranking import (
             GoogleProviderConfig,
             RerankingConfigV2,
         )
@@ -128,7 +128,7 @@ class TestProviderConfigs:
 
     def test_jina_provider_config(self):
         """Jina provider 설정 검증 (cross-encoder와 late-interaction 모두 지원)"""
-        from app.config.schemas.reranking_v2 import (
+        from app.config.schemas.reranking import (
             JinaProviderConfig,
             RerankingConfigV2,
         )
@@ -157,7 +157,7 @@ class TestProviderConfigs:
 
     def test_openai_provider_config(self):
         """OpenAI provider 설정 검증"""
-        from app.config.schemas.reranking_v2 import (
+        from app.config.schemas.reranking import (
             OpenAIProviderConfig,
             RerankingConfigV2,
         )
@@ -182,21 +182,21 @@ class TestDefaultValues:
 
     def test_default_approach_is_cross_encoder(self):
         """기본 approach는 cross-encoder"""
-        from app.config.schemas.reranking_v2 import RerankingConfigV2
+        from app.config.schemas.reranking import RerankingConfigV2
 
         config = RerankingConfigV2(provider="jina")
         assert config.approach == "cross-encoder"
 
     def test_default_provider_is_jina(self):
         """기본 provider는 jina"""
-        from app.config.schemas.reranking_v2 import RerankingConfigV2
+        from app.config.schemas.reranking import RerankingConfigV2
 
         config = RerankingConfigV2()
         assert config.provider == "jina"
 
     def test_enabled_default_is_true(self):
         """enabled 기본값은 True"""
-        from app.config.schemas.reranking_v2 import RerankingConfigV2
+        from app.config.schemas.reranking import RerankingConfigV2
 
         config = RerankingConfigV2()
         assert config.enabled is True

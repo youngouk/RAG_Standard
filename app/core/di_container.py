@@ -319,7 +319,7 @@ async def create_reranker_instance_v2(
     Returns:
         Reranker 인스턴스 또는 None
     """
-    from app.modules.core.retrieval.rerankers.factory_v2 import RerankerFactoryV2
+    from app.modules.core.retrieval.rerankers.factory import RerankerFactoryV2
 
     reranking_config = config.get("reranking", {})
 
