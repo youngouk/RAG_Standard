@@ -1,21 +1,22 @@
 # RAG_Standard 코드 품질 분석 보고서
 
-> 분석일: 2026-01-10
-> 버전: v1.0.7
-> 상태: 🟢 안정화 완료 (Phase 1, 2, 3 Deprecated 함수 완전 제거)
+> 분석일: 2026-01-19
+> 버전: v1.1.0
+> 상태: 🟢 안정화 완료 (Reranker 설정 v2 리팩토링 완료)
 
 ## 요약
 
-RAG_Standard 프로젝트는 **코드 정리가 완료된 상태**입니다. Phase 1, 2, 3 개선으로 모든 deprecated 함수가 제거/리팩토링되고 DI 패턴이 완성되었습니다.
+RAG_Standard 프로젝트는 **코드 정리가 완료된 상태**입니다. Phase 1, 2, 3 개선으로 모든 deprecated 함수가 제거/리팩토링되고 DI 패턴이 완성되었습니다. v1.1.0에서는 Reranker 설정이 3단계 계층 구조로 리팩토링되었습니다.
 
 | 카테고리 | 현황 | 우선순위 |
 |---------|------|---------|
 | DI 컨테이너 | 80+ Provider, 잘 구조화됨 | 🟢 유지 |
-| 팩토리 패턴 | 8개 명시적 팩토리 | 🟢 유지 |
+| 팩토리 패턴 | 9개 명시적 팩토리 | 🟢 유지 |
 | 레거시 코드 | ✅ 모든 deprecated 함수 제거 완료 | 🟢 완료 |
 | 전역 상태 | ✅ DI Container로 완전 이전 | 🟢 완료 |
-| 테스트 | 1,295개 통과, 일부 skip | 🟢 양호 |
+| 테스트 | 1,637개 통과, 일부 skip | 🟢 양호 |
 | Multi Vector DB | ✅ 6종 지원 완료 | 🟢 완료 |
+| Reranker 설정 | ✅ v2 3단계 계층 구조 리팩토링 완료 | 🟢 완료 |
 
 ---
 
@@ -37,7 +38,7 @@ app/core/di_container.py
     └── 기타 동적 생성 객체
 ```
 
-### 1.2 명시적 팩토리 클래스 (8개)
+### 1.2 명시적 팩토리 클래스 (9개)
 
 | 팩토리 | 위치 | 역할 |
 |--------|------|------|
@@ -49,6 +50,7 @@ app/core/di_container.py
 | `IngestionFactory` | `factories/ingestion_factory.py` | 문서 수집기 생성 |
 | `VectorStoreFactory` | `infrastructure/storage/vector/factory.py` | 벡터 DB 인스턴스 생성 |
 | `RetrieverFactory` | `modules/core/retrieval/retrievers/factory.py` | Retriever 인스턴스 생성 |
+| `RerankerFactoryV2` | `modules/core/retrieval/rerankers/factory.py` | Reranker 인스턴스 생성 (v2) |
 
 ### 1.3 개선 완료 영역 (v1.0.6)
 
@@ -93,7 +95,7 @@ query_router = providers.Singleton(
 - **Phase 2**: `get_circuit_breaker()` 및 관련 전역 레지스트리 제거 (-57줄)
 - **Phase 3**: `get_performance_metrics()` → `_get_performance_metrics()` 리팩토링 (TDD 기반)
 - **검증**: 12가지 사용처 검증 (scripts, YAML, 동적 import, docs 등) 모두 통과
-- **테스트**: 1,295개 전체 통과
+- **테스트**: 1,637개 전체 통과 (v1.1.0 기준)
 
 ### 2.2 설정 파일 통합 ✅
 
@@ -205,53 +207,55 @@ vector_store = container.vector_store()  # PineconeStore 반환
 5. ~~`routing_rules.yaml` → `routing_rules_v2.yaml` 완전 이관~~ → 완료
 6. ~~Multi Vector DB 지원 (6종)~~ → 완료
 
-### 중기 (권장)
+### ✅ 완료됨 (v1.1.0)
 
-#### 1. 리랭커 설정 구조 리팩토링
+#### 1. 리랭커 설정 구조 리팩토링 ✅
 
-**현황**: `reranking.yaml`의 `default_provider` 허용값이 층위가 혼재되어 있음
+**완료됨 (v1.1.0)**: `reranking.yaml` 설정이 3단계 계층 구조로 리팩토링됨
 
 ```yaml
-# 현재 허용값 (문제점)
-default_provider: "gemini_flash|llm|gpt5_nano|jina|cohere"
-```
-
-| 값 | 실제 의미 | 층위 |
-|-----|----------|------|
-| `gemini_flash` | Google Gemini Flash 모델 | 모델명 |
-| `gpt5_nano` | OpenAI GPT-5 Nano 모델 | 모델명 |
-| `llm` | LLM 기반 리랭커 | 카테고리 (상위 개념) |
-| `jina` | Jina AI 리랭커 서비스 | 프로바이더명 |
-| `cohere` | Cohere 리랭커 서비스 | 프로바이더명 |
-
-**문제점**:
-- 모델명, 카테고리, 프로바이더가 동일 레벨에 혼재
-- 새 리랭커 추가 시 일관성 없는 네이밍 발생
-- 설정 검증 스키마(`reranking.py`)와의 동기화 어려움
-
-**권장 리팩토링**:
-```yaml
-# 권장 구조 (계층적)
+# 새로운 구조 (approach → provider → model)
 reranking:
-  type: "llm"  # llm | vector
+  enabled: true
+  approach: "late-interaction"  # llm | cross-encoder | late-interaction
+  provider: "jina"              # approach에 따라 유효한 provider 선택
 
-  # LLM 기반 리랭커 설정
-  llm:
-    provider: "openrouter"  # openrouter | openai | anthropic
-    model: "gemini-flash-lite"
+  # Provider별 개별 설정
+  google:
+    model: "gemini-flash-lite-latest"
+    max_documents: 20
+    timeout: 15
 
-  # 벡터 기반 리랭커 설정
-  vector:
-    provider: "jina"  # jina | cohere
+  jina:
     model: "jina-colbert-v2"
+    top_n: 10
+    timeout: 30
 ```
 
-**임시 조치**: `default_provider: "jina"`로 설정하여 동작 보장 (v1.0.7)
+**approach-provider 유효 조합**:
+| approach | 유효한 provider |
+|----------|----------------|
+| `llm` | google, openai, openrouter |
+| `cross-encoder` | jina, cohere |
+| `late-interaction` | jina |
+
+**주요 변경 사항**:
+- `RerankerFactoryV2` 추가 (새 코드에서 사용 권장)
+- `RerankerFactory` 레거시 호환 유지 (기존 설정 자동 변환)
+- Pydantic 기반 approach-provider 조합 검증
+- 33개 신규 테스트 추가
+
+**파일 구조**:
+```
+app/config/schemas/reranking.py           # RerankingConfigV2 + RerankingConfig 별칭
+app/modules/core/retrieval/rerankers/factory.py  # RerankerFactoryV2 + RerankerFactory (레거시)
+app/config/schemas/_legacy/               # 레거시 스키마 보관
+app/modules/core/retrieval/rerankers/_legacy/    # 레거시 팩토리 보관
+```
 
 ### 장기 (선택적)
 1. Admin 인증 시스템 구현
 2. E2E 디버그 플로우 테스트 활성화 (실제 서비스 연결 시)
-3. `get_performance_metrics()` 내부 리팩터링 (Phase 3)
 
 ---
 
@@ -260,10 +264,11 @@ reranking:
 RAG_Standard는 **코드 정리가 완료된 프로젝트**입니다:
 
 - **DI 패턴**: 80+ Provider로 잘 구조화됨, 모든 deprecated 함수 제거
-- **팩토리 패턴**: 8개 명시적 팩토리로 확장성 확보 (VectorStore, Retriever 추가)
+- **팩토리 패턴**: 9개 명시적 팩토리로 확장성 확보 (VectorStore, Retriever, RerankerV2 추가)
 - **에러 시스템**: 양언어 지원 v2.0 완료
-- **테스트**: 1,295개 테스트로 높은 커버리지
+- **테스트**: 1,637개 테스트로 높은 커버리지
 - **Multi Vector DB**: 6종 벡터 데이터베이스 지원
+- **Reranker 설정 v2**: 3단계 계층 구조 (approach/provider/model)
 
 모든 필수 코드 정리가 완료되었습니다. 남은 항목은 **선택적 기능 확장**입니다.
 
