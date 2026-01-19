@@ -26,6 +26,7 @@ from typing import Any
 
 from .....lib.logger import get_logger
 from ..interfaces import IReranker
+from .cohere_reranker import CohereReranker
 from .colbert_reranker import ColBERTRerankerConfig, JinaColBERTReranker
 from .gemini_reranker import GeminiFlashReranker
 from .jina_reranker import JinaReranker
@@ -92,11 +93,12 @@ PROVIDER_REGISTRY: dict[str, dict[str, Any]] = {
         },
     },
     "cohere": {
-        "class": None,  # CohereReranker 구현 시 추가
+        "class": CohereReranker,
         "api_key_env": "COHERE_API_KEY",
         "default_config": {
             "model": "rerank-multilingual-v3.0",
             "top_n": 10,
+            "timeout": 30,
         },
     },
     "openrouter": {
@@ -248,6 +250,12 @@ class RerankerFactoryV2:
                 model=provider_config.get("model", defaults["model"]),
                 timeout=provider_config.get("timeout", defaults.get("timeout", 30)),
             )
+        elif provider == "cohere":
+            reranker = CohereReranker(
+                api_key=api_key,
+                model=provider_config.get("model", defaults["model"]),
+                timeout=provider_config.get("timeout", defaults.get("timeout", 30)),
+            )
         else:
             raise ValueError(
                 f"Cross-encoder approach에서 {provider}는 아직 지원되지 않습니다."
@@ -382,6 +390,19 @@ SUPPORTED_RERANKERS: dict[str, dict[str, Any]] = {
             "top_n": 10,
             "timeout": 10,
             "max_documents": 20,
+        },
+    },
+    "cohere": {
+        "type": "api",
+        "class": "CohereReranker",
+        "description": "Cohere Rerank API (100+ 언어 지원)",
+        "requires_api_key": "COHERE_API_KEY",
+        "approach": "cross-encoder",
+        "provider": "cohere",
+        "default_config": {
+            "model": "rerank-multilingual-v3.0",
+            "top_n": 10,
+            "timeout": 30,
         },
     },
 }

@@ -100,6 +100,23 @@ class TestRerankerFactoryV2Create:
         reranker = RerankerFactoryV2.create(config)
         assert reranker.__class__.__name__ == "JinaColBERTReranker"
 
+    @patch.dict("os.environ", {"COHERE_API_KEY": "test-key"})
+    def test_create_cross_encoder_cohere(self):
+        """Cross-encoder approach + Cohere provider 리랭커 생성"""
+        from app.modules.core.retrieval.rerankers.factory import RerankerFactoryV2
+
+        config = {
+            "reranking": {
+                "approach": "cross-encoder",
+                "provider": "cohere",
+                "cohere": {
+                    "model": "rerank-multilingual-v3.0",
+                },
+            }
+        }
+        reranker = RerankerFactoryV2.create(config)
+        assert reranker.__class__.__name__ == "CohereReranker"
+
     def test_create_with_invalid_approach_raises_error(self):
         """유효하지 않은 approach 시 에러"""
         from app.modules.core.retrieval.rerankers.factory import RerankerFactoryV2
