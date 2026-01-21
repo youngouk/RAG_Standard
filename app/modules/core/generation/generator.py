@@ -135,7 +135,11 @@ class GenerationModule:
                 "anthropic/claude-haiku-4",
             ],
         )
-        self.auto_fallback = self.gen_config.get("auto_fallback", True)
+        # auto_fallback: provider별 설정 우선, 없으면 전역 설정 사용
+        # Google provider는 fallback 비활성화 권장 (OpenRouter 모델명 호환 문제)
+        self.auto_fallback = self.provider_config.get(
+            "auto_fallback", self.gen_config.get("auto_fallback", True)
+        )
 
         # OpenRouter 클라이언트 (아직 초기화 안됨)
         self.client: OpenAI | None = None

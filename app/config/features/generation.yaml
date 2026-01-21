@@ -51,6 +51,9 @@ generation:
     temperature: 0.2
     max_tokens: 20000
     timeout: 150
+    # Google provider는 Fallback 비활성화 (무료 티어 보호)
+    # OpenRouter 형식 모델명이 Google API에서 인식되지 않음
+    auto_fallback: false
 
   # ========================================
   # 모델별 설정 (OpenRouter 모델 형식)

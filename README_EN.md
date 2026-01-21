@@ -1,4 +1,7 @@
-# RAG_Standard (v1.0.7)
+# RAG_Standard
+
+> A project built by a non-developer PM who wanted to implement features across multiple projects, with the help of vibe coding.
+> Created to make RAG accessible to everyone for easy PoC and adoption decisions.
 
 [한국어](README.md) | **English**
 
@@ -6,131 +9,74 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 
-A production-ready RAG (Retrieval-Augmented Generation) chatbot backend system. High-performance async web service built with FastAPI, featuring enterprise-grade security and cutting-edge GraphRAG technology.
+## What is this
 
-## 🏆 Project Status (v1.0.7)
+A modular RAG (Retrieval-Augmented Generation) backend that lets you build **only what you need**.
 
-This project has achieved **production-grade quality**:
+Designed with DI (Dependency Injection), you can mix and match features from simple vector search to full GraphRAG based on your project scale.
 
-- **Test Coverage**: 1,295 unit/integration/failure scenario tests - 100% passing
-- **Clean Codebase**: All deprecated functions removed, DI pattern complete, 80+ providers structured
-- **Static Analysis**: Full compliance with `Ruff` (Lint) and `Mypy` (Strict Type Check)
-- **Security**: Unified PII masking system with API Key authentication on all admin endpoints
-- **Multi Vector DB**: 6 vector databases supported (Weaviate, Chroma, Pinecone, Qdrant, pgvector, MongoDB)
+## Who is this for
 
-## 🚀 Key Features
+- Developers who want to **build their own** RAG system
+- Teams that need a **vendor-agnostic** architecture (not locked to specific DB or LLM)
+- Projects that want to **scale incrementally** from prototype to production
 
-### 🧠 Intelligent Search & Reasoning (Hybrid GraphRAG)
-- **Vector + Graph**: Combines Weaviate's vector search with knowledge graph relationship reasoning
-- **Fuzzy Entity Matching**: Vector search on knowledge graph entities handles typos, abbreviations, and semantic synonyms
-- **ColBERT Reranking**: Token-level precision reranking with Jina ColBERT v2
+## Feature Selection Guide
 
-### 🛡️ Enterprise Security & Reliability
-- **Unified PII Processor**: Consolidated security logic with AI-powered review system
-- **Defense-in-Depth**: Dual authentication at middleware and router levels
-- **Circuit Breaker**: Prevents cascading failures from external LLM/DB outages
+| Level | Components | Use Case |
+|-------|------------|----------|
+| **Basic** | Vector Search + LLM | Simple document Q&A |
+| **Standard** | Hybrid Search (Dense + BM25) + Reranker | Services where search quality matters (recommended) |
+| **Advanced** | + GraphRAG + Multi-Query | Complex relationship reasoning |
 
-### ⚙️ Flexible Operations & Scalability
-- **YAML Dynamic Config**: Runtime modification of service keywords and routing rules
-- **Clean Architecture**: DI pattern with `dependency-injector` for vendor-agnostic flexibility
-- **Multi-LLM Support**: Google Gemini, OpenAI GPT, Anthropic Claude, OpenRouter with automatic fallback
+All components are interface(Protocol)-based, so you can enable only what you need or swap implementations.
 
-## 🚀 Quickstart (3 Steps)
+## Supported
 
-**First time?** Just follow 3 steps to experience the RAG system.
+**Vector DB** (6): Weaviate, Chroma, Pinecone, Qdrant, pgvector, MongoDB
 
-### Prerequisites
+**LLM** (4): Google Gemini, OpenAI, Anthropic Claude, OpenRouter
+
+**Reranker** (6): Jina, Cohere, Google, OpenAI, OpenRouter, Local(sentence-transformers)
+
+## Quickstart
 
 ```bash
-# Check required tools
-docker --version          # Docker 20.10+
-docker compose version    # Docker Compose v2+
-uv --version || curl -LsSf https://astral.sh/uv/install.sh | sh  # UV package manager
-```
-
-### Step 1: Clone & Install
-
-```bash
+# 1. Clone & Install
 git clone https://github.com/youngouk/RAG_Standard.git
-cd RAG_Standard
-uv sync
-```
+cd RAG_Standard && uv sync
 
-### Step 2: Configure
-
-```bash
-# Copy quickstart environment file
+# 2. Configure
 cp quickstart/.env.quickstart .env
+# Set GOOGLE_API_KEY in .env (Free: https://aistudio.google.com/apikey)
 
-# Edit .env and set just ONE API key
-# GOOGLE_API_KEY=your-key  (Free: https://aistudio.google.com/apikey)
-```
-
-### Step 3: Run
-
-```bash
+# 3. Run
 make quickstart
 ```
 
-Done! 🎉 Test the API at http://localhost:8000/docs
+Test the API at http://localhost:8000/docs
 
 ```bash
 # Stop
 make quickstart-down
 ```
 
----
-
-## 📖 Detailed Setup Guide
-
-For more granular configuration, see [docs/SETUP.md](docs/SETUP.md).
-
-### Development Environment (Local)
+## Development
 
 ```bash
-# 1. Run only Weaviate with Docker
-docker compose -f docker-compose.weaviate.yml up -d
-
-# 2. Configure detailed environment
-cp .env.example .env
-# Edit .env (API keys, auth keys, etc.)
-
-# 3. Run dev server (with hot reload)
-make dev-reload
+make dev-reload    # Dev server (hot reload)
+make test          # Run tests
+make lint          # Lint check
+make type-check    # Type check
 ```
 
-### Run Tests
+## Docs
 
-```bash
-# Run 1,295 tests
-make test
-```
+- [Setup Guide](docs/SETUP.md)
+- [Architecture](docs/TECHNICAL_DEBT_ANALYSIS.md)
+- [Streaming API Guide](docs/streaming-api-guide.md)
+- [WebSocket API Guide](docs/websocket-api-guide.md)
 
-## 📂 Project Structure
+## License
 
-```
-app/
-├── api/           # REST API & auth layer
-├── modules/core/  # RAG core (Graph, Retrieval, Privacy, Generation)
-├── core/          # Interfaces & DI container
-└── config/        # Environment-specific configs
-```
-
-## 🔧 Supported Vector Databases
-
-| Provider | Hybrid Search | Best For |
-|----------|---------------|----------|
-| **Weaviate** (default) | ✅ Dense + BM25 | Self-hosted, hybrid built-in |
-| **Chroma** | ❌ Dense only | Lightweight, local dev |
-| **Pinecone** | ✅ Dense + Sparse | Serverless cloud |
-| **Qdrant** | ✅ Dense + Full-Text | High-performance self-hosted |
-| **pgvector** | ❌ Dense only | PostgreSQL extension |
-| **MongoDB Atlas** | ❌ Dense only | Atlas Vector Search |
-
-## 📜 License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+MIT License
