@@ -15,6 +15,39 @@ RAG(Retrieval-Augmented Generation) 시스템을 **필요한 만큼만** 구축�
 
 DI(Dependency Injection) 구조로 설계되어, 단순한 벡터 검색부터 GraphRAG까지 프로젝트 규모에 맞게 기능을 조합할 수 있습니다.
 
+### RAG 파이프라인
+
+```
+Query → Router → Expansion → Retriever → Cache → Reranker → Generator → PII Masking → Response
+```
+
+| 단계 | 기능 | 설명 |
+|------|------|------|
+| 1 | 쿼리 라우팅 | LLM/Rule 기반 쿼리 유형 분류 |
+| 2 | 쿼리 확장 | 동의어, 불용어, 사용자사전 처리 |
+| 3 | 검색 | 벡터/하이브리드 검색 (6종 DB) |
+| 4 | 캐싱 | 메모리, Redis, 시맨틱 캐시 |
+| 5 | 재정렬 | Cross-Encoder, ColBERT, LLM 기반 |
+| 6 | 답변 생성 | 멀티 LLM 지원 (4종) |
+| 7 | 후처리 | 개인정보 탐지 및 마스킹 |
+
+**Optional**: Self-RAG (자가 평가), GraphRAG (관계 추론), Agent (도구 실행), SQL Search (메타데이터)
+
+### DI 컨테이너 구성 요소
+
+| 카테고리 | 구성 요소 | 설명 |
+|---------|----------|------|
+| **Core** | LLM Factory, Circuit Breaker | 멀티 LLM 지원, 장애 전파 차단 |
+| **Retrieval** | Retriever, Reranker, Cache | 벡터/하이브리드 검색, 재정렬, 시맨틱 캐시 |
+| **BM25 고도화** | 동의어, 불용어, 사용자사전 | 한국어 검색 품질 향상 |
+| **Privacy** | PII Processor, Masker | 개인정보 탐지 및 마스킹 |
+| **Session** | Session, Memory | 대화 컨텍스트 관리 |
+| **GraphRAG** | Graph Store, Entity Extractor | 지식 그래프 기반 관계 추론 |
+| **Agent** | Agent Orchestrator, MCP | 에이전트 및 도구 실행 |
+| **Storage** | Vector Store, Metadata Store | 벡터 DB 및 메타데이터 저장 |
+
+각 카테고리는 YAML 설정으로 활성화/비활성화하거나, 직접 구현체를 교체할 수 있습니다.
+
 ## 누구를 위한 프로젝트인가
 
 - RAG 시스템을 **직접 구축**하고 싶은 개발자

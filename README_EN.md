@@ -15,6 +15,39 @@ A modular RAG (Retrieval-Augmented Generation) backend that lets you build **onl
 
 Designed with DI (Dependency Injection), you can mix and match features from simple vector search to full GraphRAG based on your project scale.
 
+### RAG Pipeline
+
+```
+Query → Router → Expansion → Retriever → Cache → Reranker → Generator → PII Masking → Response
+```
+
+| Step | Feature | Description |
+|------|---------|-------------|
+| 1 | Query Routing | LLM/Rule-based query classification |
+| 2 | Query Expansion | Synonyms, stopwords, user dictionary |
+| 3 | Search | Vector/hybrid search (6 DBs) |
+| 4 | Caching | Memory, Redis, semantic cache |
+| 5 | Reranking | Cross-Encoder, ColBERT, LLM-based |
+| 6 | Response | Multi-LLM support (4 providers) |
+| 7 | Post-process | PII detection and masking |
+
+**Optional**: Self-RAG (self-evaluation), GraphRAG (reasoning), Agent (tool execution), SQL Search (metadata)
+
+### DI Container Components
+
+| Category | Components | Description |
+|----------|------------|-------------|
+| **Core** | LLM Factory, Circuit Breaker | Multi-LLM support, failure isolation |
+| **Retrieval** | Retriever, Reranker, Cache | Vector/hybrid search, reranking, semantic cache |
+| **BM25 Enhancement** | Synonyms, Stopwords, User Dictionary | Improved Korean search quality |
+| **Privacy** | PII Processor, Masker | PII detection and masking |
+| **Session** | Session, Memory | Conversation context management |
+| **GraphRAG** | Graph Store, Entity Extractor | Knowledge graph-based reasoning |
+| **Agent** | Agent Orchestrator, MCP | Agent and tool execution |
+| **Storage** | Vector Store, Metadata Store | Vector DB and metadata persistence |
+
+Each category can be enabled/disabled via YAML config, or you can swap implementations.
+
 ## Who is this for
 
 - Developers who want to **build their own** RAG system
