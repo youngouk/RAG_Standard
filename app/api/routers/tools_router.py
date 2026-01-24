@@ -12,9 +12,10 @@ import time
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from ...lib.auth import get_api_key
 from ...lib.logger import get_logger
 from ...modules.core.tools import ToolExecutionResult, ToolExecutor
 
@@ -123,7 +124,8 @@ async def get_tool_info(tool_name: str) -> ToolInfoResponse:
         ) from e
 
 
-@router.post("/tools/{tool_name}/execute", response_model=ToolExecuteResponse)
+# ✅ H3 보안 패치: Tool 실행은 위험할 수 있으므로 인증 필요
+@router.post("/tools/{tool_name}/execute", response_model=ToolExecuteResponse, dependencies=[Depends(get_api_key)])
 async def execute_tool(tool_name: str, request: ToolExecuteRequest) -> ToolExecuteResponse:
     """
     Tool 실행

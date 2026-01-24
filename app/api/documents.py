@@ -6,13 +6,17 @@ Documents management API endpoints
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
+from ..lib.auth import get_api_key
 from ..lib.logger import get_logger
 
 logger = get_logger(__name__)
-router = APIRouter(tags=["Documents"])
+
+# ✅ C1, C2 보안 패치: 라우터 레벨 인증 추가
+# 모든 Documents API 엔드포인트는 X-API-Key 헤더 필수
+router = APIRouter(tags=["Documents"], dependencies=[Depends(get_api_key)])
 modules: dict[str, Any] = {}
 config: dict[str, Any] = {}
 

@@ -13,11 +13,15 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from app.lib import LangSmithSDKClient, QueryLogSDK
+from app.lib.auth import get_api_key
 
 LangSmithClient = LangSmithSDKClient
 QueryLog = QueryLogSDK
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/langsmith", tags=["LangSmith Logs"])
+
+# ✅ H5 보안 패치: LangSmith 로그는 민감한 대화 내용 포함
+# 모든 엔드포인트에 인증 필요
+router = APIRouter(prefix="/api/langsmith", tags=["LangSmith Logs"], dependencies=[Depends(get_api_key)])
 
 
 class QueryLogResponse(BaseModel):

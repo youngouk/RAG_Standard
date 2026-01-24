@@ -2,15 +2,18 @@
 환경 감지 및 검증 모듈
 
 다층 환경 감지 로직:
-- 여러 지표를 종합적으로 판단하여 프로덕션 환경 감지
-- 단일 환경 변수 조작으로 우회 불가능
-- 하나라도 프로덕션 지표가 있으면 프로덕션으로 간주
+- 명시적 환경 변수(ENVIRONMENT, NODE_ENV)를 최우선으로 판단
+- 인프라 기반 체크(HTTPS URL)를 보조 지표로 사용
+- 보안 설정(FASTAPI_AUTH_KEY)은 환경 지표로 사용하지 않음
 
 프로덕션 지표:
 1. ENVIRONMENT=production 또는 prod
 2. NODE_ENV=production 또는 prod
 3. WEAVIATE_URL이 https://로 시작
-4. FASTAPI_AUTH_KEY 설정 존재
+
+⚠️ 주의: FASTAPI_AUTH_KEY는 보안 설정이므로 환경 감지에 사용하지 않음
+- 개발 환경에서도 보안을 위해 AUTH_KEY를 설정할 수 있음
+- AUTH_KEY를 환경 지표로 사용하면 개발 환경이 프로덕션으로 오인됨
 """
 
 import os
@@ -22,53 +25,50 @@ logger = get_logger(__name__)
 
 def is_production_environment() -> bool:
     """
-    다층 환경 감지 로직으로 프로덕션 환경 여부 판단
+    다층 환경 감지 로직으로 프로덕션 환경 여부 판단 (개선된 버전)
 
-    프로덕션 지표:
-    - ENVIRONMENT=production 또는 prod
-    - NODE_ENV=production 또는 prod
-    - WEAVIATE_URL이 https://로 시작
-    - FASTAPI_AUTH_KEY 설정 존재
+    감지 우선순위:
+    1. ENVIRONMENT 환경변수 (명시적 설정 최우선)
+    2. NODE_ENV 환경변수 (JavaScript 생태계 호환)
+    3. 인프라 기반 체크 (HTTPS 사용 여부만)
 
-    중요: 하나라도 프로덕션 지표가 있으면 프로덕션으로 간주
-    → 환경 변수 조작 공격 차단
+    ⚠️ 주의: FASTAPI_AUTH_KEY는 보안 설정이므로 환경 감지에 사용하지 않음
+    - 개발 환경에서도 보안을 위해 AUTH_KEY를 설정할 수 있음
+    - 이를 환경 지표로 사용하면 개발 환경이 프로덕션으로 오인되는 버그 발생
 
     Returns:
         프로덕션 환경 여부
     """
-    production_indicators: list[bool] = []
-
-    # 1. ENVIRONMENT 환경 변수 체크
+    # 1. ENVIRONMENT 환경변수 체크 (최우선)
     environment = os.getenv("ENVIRONMENT", "").lower()
-    production_indicators.append(environment in ["production", "prod"])
+    if environment in ("production", "prod"):
+        logger.info("🔒 프로덕션 환경 감지됨 (ENVIRONMENT 환경변수)")
+        return True
+    if environment in ("development", "dev", "test", "local"):
+        logger.info("🔓 개발/테스트 환경으로 판단됨 (ENVIRONMENT 환경변수)")
+        return False
 
-    # 2. NODE_ENV 환경 변수 체크
+    # 2. NODE_ENV 체크 (JavaScript 생태계 호환)
     node_env = os.getenv("NODE_ENV", "").lower()
-    production_indicators.append(node_env in ["production", "prod"])
+    if node_env in ("production", "prod"):
+        logger.info("🔒 프로덕션 환경 감지됨 (NODE_ENV 환경변수)")
+        return True
+    if node_env in ("development", "dev", "test"):
+        logger.info("🔓 개발/테스트 환경으로 판단됨 (NODE_ENV 환경변수)")
+        return False
 
-    # 3. WEAVIATE_URL이 https://로 시작하는지 체크
+    # 3. 인프라 기반 체크 (HTTPS 사용 여부만)
     weaviate_url = os.getenv("WEAVIATE_URL", "")
-    production_indicators.append(weaviate_url.startswith("https://"))
+    if weaviate_url.startswith("https://"):
+        logger.info("🔒 프로덕션 환경 감지됨 (HTTPS Weaviate URL)")
+        return True
 
-    # 4. FASTAPI_AUTH_KEY 설정 여부 체크
-    auth_key = os.getenv("FASTAPI_AUTH_KEY")
-    production_indicators.append(bool(auth_key))
+    # 4. ✅ FASTAPI_AUTH_KEY는 환경 감지에 사용하지 않음 (보안 설정 ≠ 환경 지표)
+    # 개발 환경에서도 보안을 위해 AUTH_KEY를 설정할 수 있어야 함
 
-    # 하나라도 True이면 프로덕션으로 간주
-    is_production = any(production_indicators)
-
-    if is_production:
-        logger.info("🔒 프로덕션 환경 감지됨")
-        logger.info(f"   - ENVIRONMENT: {environment or '(미설정)'}")
-        logger.info(f"   - NODE_ENV: {node_env or '(미설정)'}")
-        logger.info(
-            f"   - WEAVIATE_URL: {weaviate_url[:20]}... (https 여부: {weaviate_url.startswith('https://')})"
-        )
-        logger.info(f"   - FASTAPI_AUTH_KEY: {'설정됨' if auth_key else '미설정'}")
-    else:
-        logger.info("🔓 개발 환경으로 판단됨")
-
-    return is_production
+    # 기본값: 개발 환경으로 간주 (안전한 기본값)
+    logger.info("🔓 개발 환경으로 판단됨 (명시적 환경 설정 없음)")
+    return False
 
 
 def validate_required_env_vars() -> None:

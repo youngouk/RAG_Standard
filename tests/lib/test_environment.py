@@ -43,24 +43,33 @@ class TestProductionEnvironmentDetection:
         os.environ["WEAVIATE_URL"] = "https://weaviate.example.com"
         assert is_production_environment() is True
 
-    def test_detect_production_by_auth_key(self) -> None:
-        """FASTAPI_AUTH_KEY 설정 시 프로덕션 감지"""
+    def test_auth_key_not_production_indicator(self) -> None:
+        """FASTAPI_AUTH_KEY는 프로덕션 지표로 사용하지 않음 (보안 설정 ≠ 환경 지표)
+
+        개발 환경에서도 보안을 위해 AUTH_KEY를 설정할 수 있어야 함.
+        AUTH_KEY를 환경 지표로 사용하면 개발 환경이 프로덕션으로 오인되는 버그 발생.
+        """
         from app.lib.environment import is_production_environment
 
         os.environ["FASTAPI_AUTH_KEY"] = "secure-key-12345"
-        assert is_production_environment() is True
+        # AUTH_KEY만으로는 프로덕션으로 감지되지 않음
+        assert is_production_environment() is False
 
-    def test_block_environment_manipulation_attack(self) -> None:
-        """환경 변수 조작 공격 차단 - 다른 프로덕션 지표 존재 시"""
+    def test_explicit_environment_variable_takes_priority(self) -> None:
+        """명시적 ENVIRONMENT 환경변수가 다른 지표보다 우선순위를 가짐
+
+        ENVIRONMENT=development가 설정되면 다른 프로덕션 지표(HTTPS URL)보다 우선.
+        이는 의도적인 설계로, 개발자가 명시적으로 환경을 지정할 수 있게 함.
+        """
         from app.lib.environment import is_production_environment
 
-        # 공격자가 ENVIRONMENT=development로 설정
+        # ENVIRONMENT=development를 명시적으로 설정
         os.environ["ENVIRONMENT"] = "development"
-        # 하지만 다른 프로덕션 지표가 존재
+        # 인프라는 HTTPS를 사용 (프로덕션 인프라에서 개발 테스트하는 경우)
         os.environ["WEAVIATE_URL"] = "https://weaviate.example.com"
 
-        # 프로덕션으로 감지되어야 함 (하나라도 프로덕션 지표가 있으면 프로덕션)
-        assert is_production_environment() is True
+        # 명시적 ENVIRONMENT 설정이 우선되어 개발 환경으로 판단
+        assert is_production_environment() is False
 
     def test_allow_development_environment(self) -> None:
         """개발 환경 정상 허용"""

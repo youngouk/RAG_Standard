@@ -532,11 +532,12 @@ if env_allowed_origins:
         [origin.strip() for origin in env_allowed_origins.split(",") if origin.strip()]
     )
 
+# ✅ H6 보안 패치: allow_methods를 명시적으로 지정 (와일드카드 제거)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=default_allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
 )
 

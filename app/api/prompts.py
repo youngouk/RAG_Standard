@@ -6,8 +6,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from ..lib.auth import get_api_key
 from ..lib.logger import get_logger
 from ..models.prompts import PromptCreate, PromptListResponse, PromptResponse, PromptUpdate
 
@@ -16,6 +17,8 @@ if TYPE_CHECKING:
     from ..core.di_container import AppContainer
 
 logger = get_logger(__name__)
+# ✅ H2 보안 패치: GET(읽기)은 공개, POST/PUT/DELETE(쓰기)는 인증 필요
+# 라우터 레벨 인증 대신 개별 엔드포인트에 적용
 router = APIRouter(prefix="/api/prompts", tags=["Prompts"])
 
 
@@ -105,15 +108,18 @@ async def get_prompt_by_name(name: str):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
 
 
+# ✅ H2 보안 패치: POST(생성) 인증 필요
 @router.post(
     "",
     response_model=PromptResponse,
     status_code=status.HTTP_201_CREATED,
     summary="프롬프트 생성",
     description="새 프롬프트를 생성합니다. /api/prompts 또는 /api/prompts/ 두 경로 모두 사용 가능합니다.",
+    dependencies=[Depends(get_api_key)],
 )
 @router.post(
-    "/", response_model=PromptResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False
+    "/", response_model=PromptResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False,
+    dependencies=[Depends(get_api_key)],
 )
 async def create_prompt(prompt_data: PromptCreate):
     """
@@ -137,7 +143,8 @@ async def create_prompt(prompt_data: PromptCreate):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
 
 
-@router.put("/{prompt_id}", response_model=PromptResponse)
+# ✅ H2 보안 패치: PUT(수정) 인증 필요
+@router.put("/{prompt_id}", response_model=PromptResponse, dependencies=[Depends(get_api_key)])
 async def update_prompt(prompt_id: str, update_data: PromptUpdate):
     """
     프롬프트 업데이트
@@ -157,7 +164,8 @@ async def update_prompt(prompt_id: str, update_data: PromptUpdate):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
 
 
-@router.delete("/{prompt_id}", status_code=status.HTTP_204_NO_CONTENT)
+# ✅ H2 보안 패치: DELETE(삭제) 인증 필요
+@router.delete("/{prompt_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(get_api_key)])
 async def delete_prompt(prompt_id: str):
     """
     프롬프트 삭제
@@ -191,7 +199,8 @@ async def export_prompts():
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
 
 
-@router.post("/import")
+# ✅ H2 보안 패치: import도 데이터 수정이므로 인증 필요
+@router.post("/import", dependencies=[Depends(get_api_key)])
 async def import_prompts(
     data: dict, overwrite: bool = Query(False, description="기존 프롬프트 덮어쓰기 여부")
 ):

@@ -9,10 +9,13 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.core.di_container import AppContainer
+from app.lib.auth import get_api_key
 from app.modules.ingestion.factory import IngestionConnectorFactory
 from app.modules.ingestion.service import IngestionService
 
-router = APIRouter(prefix="/ingest", tags=["Ingestion"])
+# ✅ C3, C4 보안 패치: 라우터 레벨 인증 추가
+# 모든 Ingestion API 엔드포인트는 X-API-Key 헤더 필수
+router = APIRouter(prefix="/ingest", tags=["Ingestion"], dependencies=[Depends(get_api_key)])
 
 class NotionIngestRequest(BaseModel):
     database_id: str

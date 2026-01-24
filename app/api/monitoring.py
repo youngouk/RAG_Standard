@@ -7,9 +7,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
+from ..lib.auth import get_api_key
 from ..lib.logger import get_logger
 
 # 순환 임포트 방지: 타입 힌트용으로만 임포트
@@ -25,7 +26,10 @@ def _get_container() -> AppContainer:
 
 
 logger = get_logger(__name__)
-router = APIRouter(tags=["Monitoring"])
+
+# ✅ H1 보안 패치: 라우터 레벨 인증 추가
+# Monitoring API는 비용, 성능 정보 등 민감한 데이터 노출
+router = APIRouter(tags=["Monitoring"], dependencies=[Depends(get_api_key)])
 
 
 class MonitoringResponse(BaseModel):
