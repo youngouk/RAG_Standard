@@ -10,9 +10,10 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
+from ..lib.auth import get_api_key
 from ..lib.logger import get_logger
 from ..modules.core.privacy.masker import DEFAULT_WHITELIST, PrivacyMasker
 
@@ -22,7 +23,9 @@ logger = get_logger(__name__)
 # DEFAULT_WHITELIST 사용 (오탐 방지: 이모님, 헬퍼님, 담당 등)
 # Note: DI Container 외부에서 사용하므로 기본 화이트리스트 직접 지정
 _privacy_masker: PrivacyMasker | None = PrivacyMasker(whitelist=list(DEFAULT_WHITELIST))
-router = APIRouter(tags=["Upload"])
+# ✅ H4 보안 패치: Upload API 인증 추가
+# 파일 업로드/삭제는 시스템 변경이므로 인증 필요
+router = APIRouter(tags=["Upload"], dependencies=[Depends(get_api_key)])
 modules: dict[str, Any] = {}
 config: dict[str, Any] = {}
 

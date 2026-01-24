@@ -3,10 +3,13 @@ Configuration Schemas - Pydantic 기반 설정 검증
 YAML 설정을 타입 안전하게 검증하고 IDE 자동완성 지원
 """
 
+import logging
 import re
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+logger = logging.getLogger(__name__)
 
 # ========================================
 # App & Server Configuration
@@ -366,7 +369,7 @@ class RootConfig(BaseModel):
             errors.append("Self-RAG 평가 모듈 API 키 누락")
 
         if errors:
-            print(f"⚠️  API 키 경고: {', '.join(errors)}")
+            logger.warning(f"API 키 경고: {', '.join(errors)}")
             # 경고만 출력, 에러는 발생시키지 않음 (환경변수로 제공 가능)
 
         return self

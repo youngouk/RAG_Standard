@@ -31,6 +31,9 @@ from ..config.schemas.root import validate_config_safe
 from .config_validator import validate_full_config
 from .environment import is_production_environment
 from .errors import ConfigError, ErrorCode
+from .logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class ConfigLoader:
@@ -54,7 +57,7 @@ class ConfigLoader:
             if self.environment not in ["development", "test", "production"]:
                 self.environment = "development"
 
-        print(f"🔧 환경 감지: {self.environment}")
+        logger.info(f"환경 감지: {self.environment}")
 
     def load_config(
         self,
@@ -86,10 +89,10 @@ class ConfigLoader:
             legacy_config_path = self.base_path / "config.yaml"
             if base_config_path.exists():
                 config_file_path = base_config_path
-                print("📦 Using modular config: base.yaml (+ imports)")
+                logger.debug("모듈화된 설정 사용: base.yaml (+ imports)")
             elif legacy_config_path.exists():
                 config_file_path = legacy_config_path
-                print("⚠️  Using legacy config: config.yaml (consider migrating to base.yaml)")
+                logger.warning("레거시 설정 사용: config.yaml (base.yaml로 마이그레이션 권장)")
             else:
                 raise ConfigError(
                     ErrorCode.CONFIG_001,
@@ -115,13 +118,13 @@ class ConfigLoader:
 
             # 강화된 Pydantic 검증 (v3.3.1)
             if validate and enable_enhanced_validation:
-                print("🔧 강화된 Pydantic 검증 적용 중...")
+                logger.debug("강화된 Pydantic 검증 적용 중...")
                 try:
                     base_config = validate_full_config(
                         base_config,
                         strict=raise_on_validation_error,
                     )
-                    print("✅ 강화된 설정 검증 완료")
+                    logger.debug("강화된 설정 검증 완료")
                 except Exception as e:
                     if raise_on_validation_error:
                         raise ConfigError(
@@ -129,14 +132,14 @@ class ConfigLoader:
                             validation_errors=str(e),
                             environment=self.environment,
                         ) from e
-                    print(f"⚠️ 강화된 검증 경고: {e}")
-                    print("⚠️ 기본 검증으로 전환합니다.")
+                    logger.warning(f"강화된 검증 경고: {e}")
+                    logger.warning("기본 검증으로 전환합니다.")
 
             # Pydantic 검증 (Feature Flag로 레거시/신규 선택)
             if validate:
                 if use_modular_schema:
                     # 신규 모듈화된 스키마 사용 (Graceful Degradation 지원)
-                    print("🔧 Using modular Pydantic schemas (app/config/schemas/)")
+                    logger.debug("모듈화된 Pydantic 스키마 사용 (app/config/schemas/)")
                     result = validate_config_safe(
                         base_config,
                         raise_on_error=raise_on_validation_error,
@@ -152,10 +155,10 @@ class ConfigLoader:
 
                 else:
                     # 레거시 스키마 사용 (기존 동작 유지)
-                    print("🔧 Using legacy Pydantic schema (app/config/schemas.py)")
+                    logger.debug("레거시 Pydantic 스키마 사용 (app/config/schemas.py)")
                     try:
                         validated_config = validate_config_dict_legacy(base_config)
-                        print("✅ 설정 검증 완료")
+                        logger.debug("설정 검증 완료")
                         validated_dict: dict[str, Any] = validated_config.model_dump(
                             exclude_none=False, exclude_unset=False
                         )
@@ -168,8 +171,8 @@ class ConfigLoader:
                                 environment=self.environment,
                             ) from e
 
-                        print(f"⚠️  설정 검증 경고:\n{e}")
-                        print("⚠️  검증 없이 설정을 로드합니다 (위험)")
+                        logger.warning(f"설정 검증 경고: {e}")
+                        logger.warning("검증 없이 설정을 로드합니다 (위험)")
                         return base_config
 
             return base_config
@@ -214,7 +217,7 @@ class ConfigLoader:
                     import_file = Path(import_path)
                 imported_config = self._load_yaml_file(import_file)
                 config = self._merge_configs(config, imported_config)
-                print(f"  ✓ Imported: {import_path}")
+                logger.debug(f"설정 임포트 완료: {import_path}")
         return config
 
     def _merge_configs(self, base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:

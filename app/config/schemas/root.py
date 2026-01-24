@@ -4,6 +4,7 @@ Root 설정 스키마
 전체 애플리케이션 설정을 통합하고 검증하는 최상위 스키마입니다.
 """
 
+import logging
 from typing import Any
 
 from pydantic import Field, ValidationError
@@ -12,6 +13,8 @@ from .base import BaseConfig
 from .generation import GenerationConfig
 from .reranking import RerankingConfig
 from .retrieval import DocumentProcessingConfig, RAGConfig, RetrievalConfig
+
+logger = logging.getLogger(__name__)
 
 
 class RootConfig(BaseConfig):
@@ -174,10 +177,9 @@ def validate_config_safe(
 
     if errors:
         if log_errors:
-            # 로깅 (향후 structlog로 교체)
-            print("⚠️  설정 검증 실패 - 원본 딕셔너리 사용 (Graceful Degradation)")
+            logger.warning("설정 검증 실패 - 원본 딕셔너리 사용 (Graceful Degradation)")
             for error in errors:
-                print(f"  - {error}")
+                logger.warning(f"  - {error}")
 
         if raise_on_error:
             error_msg = "\n".join(errors)
@@ -188,7 +190,7 @@ def validate_config_safe(
 
     # 검증 성공
     if log_errors:  # log_errors=True이면 성공도 로깅
-        print("✅ 설정 검증 성공 - Pydantic 모델 사용")
+        logger.debug("설정 검증 성공 - Pydantic 모델 사용")
 
     return validated_config
 
