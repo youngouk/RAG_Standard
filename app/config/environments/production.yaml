@@ -79,11 +79,17 @@ weaviate:
   timeout: 30  # 안정적인 타임아웃
   batch_size: 100
 
-# 리랭킹 (프로덕션 환경)
+# 리랭킹 (프로덕션 환경) - 환경별 분리
 reranking:
   enabled: true
+  min_score: 0.05  # ✅ 프로덕션: 저품질 결과 필터링 (개발/테스트는 0.0)
   timeout: 30
   max_retries: 3
+
+# 스코어링 (프로덕션 환경) - 도메인별 가중치 활성화
+scoring:
+  collection_weight_enabled: true   # ✅ 프로덕션: 컬렉션 가중치 활성화
+  file_type_weight_enabled: true    # ✅ 프로덕션: 파일타입 가중치 활성화
 
 # GraphRAG (프로덕션 환경)
 graph_rag:

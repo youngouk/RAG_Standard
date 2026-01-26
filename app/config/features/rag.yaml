@@ -64,7 +64,7 @@ scoring:
   # -------------------------------------------------------------------------
   # 활성화 시 검색 결과의 출처 컬렉션에 따라 점수에 가중치를 곱함
   # 예: NotionMetadata 컬렉션 결과를 1.5배 부스트
-  collection_weight_enabled: false
+  collection_weight_enabled: false  # 기본값 (환경별: environments/*.yaml에서 오버라이드)
   
   collection_weights:
     NotionMetadata: 1.0
@@ -78,7 +78,7 @@ scoring:
   # 활성화 시 검색 결과의 파일 타입에 따라 점수에 가중치를 곱함
   # 예: PDF 문서 결과를 1.1배 부스트
   # 참고: 기존 source_boost.weights를 대체
-  file_type_weight_enabled: false
+  file_type_weight_enabled: false  # 기본값 (환경별: environments/*.yaml에서 오버라이드)
   
   file_type_weights:
     TXT: 1.0

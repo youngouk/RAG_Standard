@@ -50,3 +50,12 @@ circuit_breaker:
 # Langfuse (개발 환경)
 langfuse:
   enabled: false  # 개발 중에는 선택적 활성화
+
+# 리랭킹 (개발 환경)
+reranking:
+  min_score: 0.0  # 개발: 모든 결과 포함 (디버깅용)
+
+# 스코어링 (개발 환경)
+scoring:
+  collection_weight_enabled: false  # 개발: 순수 RRF 점수
+  file_type_weight_enabled: false

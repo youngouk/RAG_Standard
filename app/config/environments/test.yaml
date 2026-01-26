@@ -61,3 +61,12 @@ mongodb:
 # Weaviate (테스트 환경)
 weaviate:
   timeout: 10  # 짧은 타임아웃
+
+# 리랭킹 (테스트 환경)
+reranking:
+  min_score: 0.0  # 테스트: 일관된 결과
+
+# 스코어링 (테스트 환경)
+scoring:
+  collection_weight_enabled: false  # 테스트: 순수 RRF 점수
+  file_type_weight_enabled: false
