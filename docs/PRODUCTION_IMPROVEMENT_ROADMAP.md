@@ -2,7 +2,7 @@
 
 > **문서 버전**: 1.2.0
 > **작성 일자**: 2026-01-23
-> **최종 업데이트**: 2026-01-27 (Phase 5 추가)
+> **최종 업데이트**: 2026-01-27 (TXT 파일 제한 로직 제거)
 > **대상 버전**: OneRAG v1.2.1 → v1.4.0
 
 ---
@@ -33,7 +33,6 @@
 │  └── API Key 로테이션                                                       │
 │                                                                             │
 │  Phase 5: 검색 품질 개선 (P4)               [1주]      ━━━━━━━━━━━━━━━━━━━  │
-│  ├── TXT 파일 제한 동적화                                                   │
 │  ├── 스트리밍 에러 복구                                                     │
 │  └── 점수 정규화 통합                                                       │
 │                                                                             │
@@ -565,51 +564,7 @@ class APIKeyManager:
 
 ### 예상 소요 시간: 1주
 
-### 5.1 TXT 파일 제한 동적화
-
-**문제점**
-- 현재 `orchestrator.py`에서 TXT 파일을 최대 15개로 하드코딩
-- 대량의 FAQ/문서 모음이 있는 경우 검색 다양성 저하
-
-**현재 코드** (`app/modules/core/retrieval/orchestrator.py`):
-```python
-def _apply_txt_limit(self, results: list) -> list:
-    txt_limit = 15  # 하드코딩된 값
-    # TXT 파일만 15개로 제한
-```
-
-**해결 방안**:
-```yaml
-# app/config/features/retrieval.yaml
-retrieval:
-  file_type_limits:
-    enabled: true
-    limits:
-      txt: 30    # TXT 파일 최대 30개
-      pdf: 20    # PDF 파일 최대 20개
-      docx: 15   # DOCX 파일 최대 15개
-    default: 10  # 기타 파일 타입
-```
-
-```python
-# orchestrator.py 수정
-def _apply_file_type_limit(self, results: list) -> list:
-    limits = self.config.get("file_type_limits", {})
-    if not limits.get("enabled", False):
-        return results
-
-    file_type_limits = limits.get("limits", {})
-    default_limit = limits.get("default", 10)
-
-    # 파일 타입별로 그룹화하여 제한 적용
-    ...
-```
-
-**영향도**: 검색 다양성 ↑, 답변 품질 ↑
-
----
-
-### 5.2 스트리밍 에러 복구 메커니즘
+### 5.1 스트리밍 에러 복구 메커니즘
 
 **문제점**
 - `stream_rag_pipeline()` 실행 중 에러 발생 시 이미 전송된 청크 손실
@@ -660,7 +615,7 @@ async def stream_rag_pipeline(...) -> AsyncGenerator:
 
 ---
 
-### 5.3 점수 정규화 및 가중 합산
+### 5.2 점수 정규화 및 가중 합산
 
 **문제점**
 - 벡터 점수(0~1)와 리랭크 점수(0~100) 범위가 다름
@@ -751,7 +706,6 @@ def _fuse_scores(self, results: list) -> list:
 
 ### Phase 5 완료 조건
 
-- [ ] TXT 파일 제한이 YAML 설정으로 동적 조정 가능
 - [ ] 스트리밍 에러 발생 시 체크포인트 이벤트 전송
 - [ ] 벡터/리랭크 점수 정규화 후 가중 합산 적용
 - [ ] 검색 결과 순위 안정성 테스트 통과
@@ -765,10 +719,10 @@ def _fuse_scores(self, results: list) -> list:
 | **v1.2.2** | Phase 1, 2 | 보안 패치 (Critical 4개 + High 6개) | ✅ 완료 |
 | **v1.3.0** | Phase 3 | 기능 정상화 + 설정 분리 | 예정 |
 | **v1.3.1** | Phase 4 | 운영 최적화 | 예정 |
-| **v1.4.0** | Phase 5 | 검색 품질 개선 (TXT 제한, 스트리밍 복구, 점수 정규화) | 예정 |
+| **v1.4.0** | Phase 5 | 검색 품질 개선 (스트리밍 복구, 점수 정규화) | 예정 |
 
 ---
 
 **문서 작성자**: Claude Code (Automated Planning)
-**최종 업데이트**: 2026-01-27 (Phase 5 추가)
+**최종 업데이트**: 2026-01-27 (TXT 파일 제한 로직 제거)
 **검토 필요**: Tech Lead, Security Team

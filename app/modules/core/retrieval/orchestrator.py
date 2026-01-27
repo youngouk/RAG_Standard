@@ -293,58 +293,6 @@ class RetrievalOrchestrator:
                 exc_info=True
             )
 
-    def _apply_txt_limit(self, results: list) -> list:
-        """
-        TXT 파일 다양성 제한 적용 (최대 15개)
-
-        주의: 기존 7개 제한을 15개로 상향 조정하여 다른 파일 타입과 함께
-        충분한 문서 수를 확보할 수 있도록 함
-
-        Args:
-            results: 검색 결과 리스트
-
-        Returns:
-            TXT 제한이 적용된 결과 리스트
-        """
-        txt_count = 0
-        txt_limit = 15  # 7 → 15로 상향 조정
-        diverse_results = []
-        original_count = len(results)
-
-        logger.info(
-            "TXT 다양성 제한 시작",
-            extra={"original_count": original_count}
-        )
-
-        for result in results:
-            try:
-                # 안전한 metadata 접근
-                metadata = getattr(result, "metadata", {}) or {}
-                file_type = metadata.get("file_type", "") if isinstance(metadata, dict) else ""
-                file_type = file_type.upper() if file_type else ""
-            except Exception as e:
-                logger.warning(
-                    "file_type 접근 실패",
-                    extra={"error": str(e)},
-                    exc_info=True
-                )
-                file_type = ""
-
-            if file_type == "TXT":
-                if txt_count < txt_limit:
-                    diverse_results.append(result)
-                    txt_count += 1
-                # txt_limit 초과 시 해당 결과 제외
-            else:
-                diverse_results.append(result)
-
-        logger.info(
-            f"TXT 다양성 제한 완료: {original_count}개 → {len(diverse_results)}개 "
-            f"(TXT {txt_count}/{txt_limit}개)"
-        )
-
-        return diverse_results
-
     async def search_and_rerank(
         self,
         query: str,
@@ -406,9 +354,7 @@ class RetrievalOrchestrator:
                         logger.info(
                             f"캐시 히트: query='{query[:50]}...', results={len(cached_results)}"
                         )
-                        # 캐시된 결과에도 TXT 제한 적용
-                        filtered_results = self._apply_txt_limit(cached_results)
-                        return filtered_results
+                        return cached_results
 
                     self.stats["cache_misses"] += 1
                 except Exception as e:
@@ -553,9 +499,6 @@ class RetrievalOrchestrator:
                         extra={"query": query[:100]}
                     )
                     # 리랭킹 실패 시 원본 결과로 fallback
-
-            # Step 3.5: TXT 파일 다양성 제한 (최대 15개)
-            final_results = self._apply_txt_limit(final_results)
 
             # Step 4: 캐시 저장 (선택적)
             if self.cache and cache_key:
@@ -949,10 +892,6 @@ class RetrievalOrchestrator:
                 "search_time_ms": search_time
             }
         )
-
-        # TXT 파일 다양성 제한 적용 (최대 15개)
-        # RAGPipeline에서 _search_and_merge를 직접 호출하는 경우에도 제한이 적용되도록 함
-        merged_results = self._apply_txt_limit(merged_results)
 
         return merged_results
 
