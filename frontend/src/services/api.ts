@@ -19,7 +19,7 @@ const getAPIBaseURL = (): string => {
   if (import.meta.env.DEV) {
     // 개발 환경에서도 직접 백엔드 URL 사용 (프록시 타임아웃 문제 해결)
     // 기본값을 Railway 프로덕션 백엔드로 설정
-    const devApiUrl = import.meta.env.VITE_DEV_API_BASE_URL || 'https://wed-rag-backend-production.up.railway.app';
+    const devApiUrl = import.meta.env.VITE_DEV_API_BASE_URL || 'http://localhost:8000';
     logger.log('개발 모드: 직접 백엔드 URL 사용:', devApiUrl);
     return devApiUrl;
   }

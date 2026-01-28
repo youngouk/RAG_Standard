@@ -22,11 +22,11 @@
 
 ### 3. 하드코딩된 컬러값 제거
 
-컴포넌트에 직접 하드코딩되어 있던 컬러값(`#742DDD`, `#6210CC` 등)을 모두 `BRAND_CONFIG`에서 참조하도록 변경했습니다.
+컴포넌트에 직접 하드코딩되어 있던 컬러값을 모두 `BRAND_CONFIG`에서 참조하도록 변경했습니다.
 
 ### 4. 브랜드명 중앙화
 
-"RAG Pipe"와 같은 브랜드명이 여러 곳에 하드코딩되어 있던 것을 `BRAND_CONFIG.appName`과 `getPageTitle()` 헬퍼 함수를 사용하도록 변경했습니다.
+브랜드명이 여러 곳에 하드코딩되어 있던 것을 `BRAND_CONFIG.appName`과 `getPageTitle()` 헬퍼 함수를 사용하도록 변경했습니다.
 
 ## 사용 방법
 
@@ -37,9 +37,9 @@
 ```typescript
 colors: {
   primary: {
-    main: '#742DDD', // 여기를 원하는 컬러로 변경
-    light: '#C2A9FA',
-    dark: '#6210CC',
+    main: '#1a1a1a', // 여기를 원하는 컬러로 변경
+    light: '#404040',
+    dark: '#000000',
   },
   // ...
 }
@@ -87,7 +87,7 @@ import { getPageTitle } from '../config/brand';
 
 // 사용 예시
 <Typography>{getPageTitle('챗봇')}</Typography>
-// 결과: "RAG Pipe - 챗봇"
+// 결과: "OneRAG - 챗봇"
 ```
 
 ### `getColor(colorPath: string, darkMode: boolean)`

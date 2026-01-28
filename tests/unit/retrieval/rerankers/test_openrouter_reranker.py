@@ -421,3 +421,235 @@ class TestOpenRouterRerankerUtilities:
         assert stats["successful_requests"] == 0
         assert stats["failed_requests"] == 1
         assert stats["success_rate"] == 0.0
+
+
+class TestOpenRouterRerankerScoreClamping:
+    """점수 클램핑 테스트 (v1.2.1 버그 수정)"""
+
+    @pytest.fixture
+    def sample_results(self) -> list[SearchResult]:
+        """테스트용 샘플 검색 결과"""
+        return [
+            SearchResult(id="1", content="문서 1 내용", score=0.8, metadata={}),
+            SearchResult(id="2", content="문서 2 내용", score=0.6, metadata={}),
+        ]
+
+    @pytest.mark.asyncio
+    async def test_score_clamping_above_1(self, sample_results: list[SearchResult]):
+        """점수가 1.0 초과 시 1.0으로 클램핑"""
+        from app.modules.core.retrieval.rerankers.openrouter_reranker import (
+            OpenRouterReranker,
+        )
+
+        # LLM이 잘못된 점수(1.5)를 반환하는 경우
+        mock_response_data = {
+            "choices": [
+                {
+                    "message": {
+                        "content": '{"rankings": [{"index": 0, "score": 1.5}, {"index": 1, "score": 1.2}]}'
+                    }
+                }
+            ]
+        }
+
+        reranker = OpenRouterReranker(api_key="test-key")
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status = MagicMock()
+
+        with patch.object(
+            reranker.http_client, "post", new_callable=AsyncMock
+        ) as mock_post:
+            mock_post.return_value = mock_response
+
+            result = await reranker.rerank("테스트 쿼리", sample_results)
+
+            # 점수가 1.0으로 클램핑되어야 함
+            assert result[0].score == 1.0
+            assert result[1].score == 1.0
+
+    @pytest.mark.asyncio
+    async def test_score_clamping_below_0(self, sample_results: list[SearchResult]):
+        """점수가 0.0 미만 시 0.0으로 클램핑"""
+        from app.modules.core.retrieval.rerankers.openrouter_reranker import (
+            OpenRouterReranker,
+        )
+
+        # LLM이 음수 점수를 반환하는 경우
+        mock_response_data = {
+            "choices": [
+                {
+                    "message": {
+                        "content": '{"rankings": [{"index": 0, "score": -0.5}, {"index": 1, "score": -1.0}]}'
+                    }
+                }
+            ]
+        }
+
+        reranker = OpenRouterReranker(api_key="test-key")
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status = MagicMock()
+
+        with patch.object(
+            reranker.http_client, "post", new_callable=AsyncMock
+        ) as mock_post:
+            mock_post.return_value = mock_response
+
+            result = await reranker.rerank("테스트 쿼리", sample_results)
+
+            # 점수가 0.0으로 클램핑되어야 함
+            assert result[0].score == 0.0
+            assert result[1].score == 0.0
+
+    @pytest.mark.asyncio
+    async def test_score_within_range_unchanged(
+        self, sample_results: list[SearchResult]
+    ):
+        """정상 범위(0~1) 점수는 변경 없음"""
+        from app.modules.core.retrieval.rerankers.openrouter_reranker import (
+            OpenRouterReranker,
+        )
+
+        mock_response_data = {
+            "choices": [
+                {
+                    "message": {
+                        "content": '{"rankings": [{"index": 0, "score": 0.85}, {"index": 1, "score": 0.45}]}'
+                    }
+                }
+            ]
+        }
+
+        reranker = OpenRouterReranker(api_key="test-key")
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status = MagicMock()
+
+        with patch.object(
+            reranker.http_client, "post", new_callable=AsyncMock
+        ) as mock_post:
+            mock_post.return_value = mock_response
+
+            result = await reranker.rerank("테스트 쿼리", sample_results)
+
+            # 정상 범위 점수는 그대로 유지
+            assert result[0].score == 0.85
+            assert result[1].score == 0.45
+
+
+class TestOpenRouterRerankerMetadata:
+    """메타데이터 테스트 (v1.2.1 개선)"""
+
+    @pytest.fixture
+    def sample_results(self) -> list[SearchResult]:
+        """테스트용 샘플 검색 결과"""
+        return [
+            SearchResult(
+                id="1", content="문서 1 내용", score=0.8, metadata={"source": "test"}
+            ),
+        ]
+
+    @pytest.mark.asyncio
+    async def test_metadata_includes_rerank_method(
+        self, sample_results: list[SearchResult]
+    ):
+        """메타데이터에 rerank_method 포함"""
+        from app.modules.core.retrieval.rerankers.openrouter_reranker import (
+            OpenRouterReranker,
+        )
+
+        mock_response_data = {
+            "choices": [
+                {"message": {"content": '{"rankings": [{"index": 0, "score": 0.9}]}'}}
+            ]
+        }
+
+        reranker = OpenRouterReranker(api_key="test-key", model="anthropic/claude-3-haiku")
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status = MagicMock()
+
+        with patch.object(
+            reranker.http_client, "post", new_callable=AsyncMock
+        ) as mock_post:
+            mock_post.return_value = mock_response
+
+            result = await reranker.rerank("테스트 쿼리", sample_results)
+
+            # rerank_method 메타데이터 확인
+            assert "rerank_method" in result[0].metadata
+            assert result[0].metadata["rerank_method"] == "openrouter:anthropic/claude-3-haiku"
+
+    @pytest.mark.asyncio
+    async def test_metadata_includes_original_score(
+        self, sample_results: list[SearchResult]
+    ):
+        """메타데이터에 original_score 포함"""
+        from app.modules.core.retrieval.rerankers.openrouter_reranker import (
+            OpenRouterReranker,
+        )
+
+        mock_response_data = {
+            "choices": [
+                {"message": {"content": '{"rankings": [{"index": 0, "score": 0.95}]}'}}
+            ]
+        }
+
+        reranker = OpenRouterReranker(api_key="test-key")
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status = MagicMock()
+
+        with patch.object(
+            reranker.http_client, "post", new_callable=AsyncMock
+        ) as mock_post:
+            mock_post.return_value = mock_response
+
+            result = await reranker.rerank("테스트 쿼리", sample_results)
+
+            # original_score 메타데이터 확인 (원본 점수 0.8)
+            assert "original_score" in result[0].metadata
+            assert result[0].metadata["original_score"] == 0.8
+
+    @pytest.mark.asyncio
+    async def test_metadata_preserves_original(
+        self, sample_results: list[SearchResult]
+    ):
+        """기존 메타데이터 보존"""
+        from app.modules.core.retrieval.rerankers.openrouter_reranker import (
+            OpenRouterReranker,
+        )
+
+        mock_response_data = {
+            "choices": [
+                {"message": {"content": '{"rankings": [{"index": 0, "score": 0.9}]}'}}
+            ]
+        }
+
+        reranker = OpenRouterReranker(api_key="test-key")
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = mock_response_data
+        mock_response.raise_for_status = MagicMock()
+
+        with patch.object(
+            reranker.http_client, "post", new_callable=AsyncMock
+        ) as mock_post:
+            mock_post.return_value = mock_response
+
+            result = await reranker.rerank("테스트 쿼리", sample_results)
+
+            # 기존 메타데이터 보존 확인
+            assert result[0].metadata["source"] == "test"

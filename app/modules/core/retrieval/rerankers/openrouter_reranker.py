@@ -203,7 +203,16 @@ JSON 형식으로 응답해주세요:
         reranked = []
         for rank in rankings:
             idx = rank.get("index", 0)
-            score = rank.get("score", 0.5)
+            raw_score = rank.get("score", 0.5)
+
+            # 점수 클램핑 (0~1 범위 보장) - LLM 응답이 범위를 벗어날 수 있음
+            score = max(0.0, min(1.0, float(raw_score)))
+
+            # 범위 벗어난 점수 경고 로그
+            if raw_score != score:
+                logger.warning(
+                    f"점수 범위 벗어남: {raw_score} → {score} (문서 인덱스: {idx})"
+                )
 
             if 0 <= idx < len(documents):
                 doc = documents[idx]
@@ -211,8 +220,12 @@ JSON 형식으로 응답해주세요:
                     SearchResult(
                         id=doc.id,
                         content=doc.content,
-                        score=float(score),
-                        metadata=doc.metadata,
+                        score=score,
+                        metadata={
+                            **doc.metadata,
+                            "rerank_method": f"openrouter:{self.model}",
+                            "original_score": doc.score,
+                        },
                     )
                 )
 

@@ -11,10 +11,10 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
       manifest: {
-        name: 'RAG Chat Application',
-        short_name: 'RAG Chat',
+        name: 'OneRAG',
+        short_name: 'OneRAG',
         description: 'AI-powered document chat application with RAG',
-        theme_color: '#742DDD',
+        theme_color: '#000000',
         background_color: '#ffffff',
         display: 'standalone',
         scope: '/',
@@ -96,7 +96,7 @@ export default defineConfig({
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: https:",
         "font-src 'self' data:",
-        "connect-src 'self' http://localhost:8000 ws://localhost:8000 https://wed-rag-backend-production.up.railway.app wss://wed-rag-backend-production.up.railway.app",
+        "connect-src 'self' http://localhost:8000 ws://localhost:8000 https://*.railway.app wss://*.railway.app",
         "frame-ancestors 'none'",
         "base-uri 'self'",
         "form-action 'self'",
@@ -108,12 +108,12 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'https://wed-rag-backend-production.up.railway.app',
+        target: process.env.VITE_API_BASE_URL || 'http://localhost:8000',
         changeOrigin: true,
         secure: true,
       },
       '/admin-ws': {
-        target: 'wss://wed-rag-backend-production.up.railway.app',
+        target: process.env.VITE_WS_BASE_URL || 'ws://localhost:8000',
         ws: true,
         changeOrigin: true,
         secure: true,

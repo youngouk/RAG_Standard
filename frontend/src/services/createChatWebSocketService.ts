@@ -74,7 +74,7 @@ const getWSBaseURL = (): string => {
     // HTTP URL을 WSS로 변환
     const devApiUrl =
       import.meta.env.VITE_DEV_API_BASE_URL ||
-      'https://wed-rag-backend-production.up.railway.app';
+      'http://localhost:8000';
     return devApiUrl.replace('https://', 'wss://').replace('http://', 'ws://');
   }
 
@@ -105,8 +105,8 @@ const getWSBaseURL = (): string => {
     }
   }
 
-  // 기본값: Railway 프로덕션 WebSocket URL
-  return 'wss://wed-rag-backend-production.up.railway.app';
+  // 기본값: localhost 폴백 (개발용)
+  return 'ws://localhost:8000';
 };
 
 /**
