@@ -3052,6 +3052,228 @@ wheels = [
 ]
 
 [[package]]
+name = "onerag"
+version = "1.0.7"
+source = { editable = "." }
+dependencies = [
+    { name = "alembic" },
+    { name = "anthropic" },
+    { name = "apscheduler" },
+    { name = "asyncpg" },
+    { name = "beautifulsoup4" },
+    { name = "cachetools" },
+    { name = "chardet" },
+    { name = "chromadb" },
+    { name = "cohere" },
+    { name = "dependency-injector" },
+    { name = "duckduckgo-search" },
+    { name = "fastapi" },
+    { name = "google-generativeai" },
+    { name = "httpx" },
+    { name = "ko-core-news-sm" },
+    { name = "langchain" },
+    { name = "langchain-anthropic" },
+    { name = "langchain-core" },
+    { name = "langchain-google-genai" },
+    { name = "langchain-openai" },
+    { name = "langchain-text-splitters" },
+    { name = "langfuse" },
+    { name = "langsmith" },
+    { name = "lxml" },
+    { name = "markdown" },
+    { name = "motor" },
+    { name = "neo4j" },
+    { name = "networkx" },
+    { name = "numpy" },
+    { name = "openai" },
+    { name = "openpyxl" },
+    { name = "pandas" },
+    { name = "pillow" },
+    { name = "pinecone" },
+    { name = "playwright" },
+    { name = "psutil" },
+    { name = "psycopg2-binary" },
+    { name = "pydantic-settings" },
+    { name = "pylnk3" },
+    { name = "pymongo" },
+    { name = "pypdf" },
+    { name = "python-docx" },
+    { name = "python-dotenv" },
+    { name = "python-multipart" },
+    { name = "pyyaml" },
+    { name = "rouge-score" },
+    { name = "scikit-learn" },
+    { name = "sentence-transformers" },
+    { name = "slowapi" },
+    { name = "spacy" },
+    { name = "sqlalchemy", extra = ["asyncio"] },
+    { name = "structlog" },
+    { name = "tavily-python" },
+    { name = "tiktoken" },
+    { name = "torch" },
+    { name = "uvicorn", extra = ["standard"] },
+    { name = "weaviate-client" },
+    { name = "websockets" },
+]
+
+[package.optional-dependencies]
+all-vectordb = [
+    { name = "chromadb" },
+    { name = "pgvector" },
+    { name = "pinecone-client" },
+    { name = "qdrant-client" },
+]
+chroma = [
+    { name = "chromadb" },
+]
+dev = [
+    { name = "black" },
+    { name = "ipython" },
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+]
+monitoring = [
+    { name = "prometheus-client" },
+]
+pgvector = [
+    { name = "pgvector" },
+]
+pinecone = [
+    { name = "pinecone-client" },
+]
+qdrant = [
+    { name = "qdrant-client" },
+]
+ragas = [
+    { name = "datasets" },
+    { name = "ragas" },
+]
+redis = [
+    { name = "redis" },
+]
+security = [
+    { name = "bcrypt" },
+    { name = "python-jose", extra = ["cryptography"] },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "import-linter" },
+    { name = "mypy" },
+    { name = "pydeps" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+    { name = "pytest-timeout" },
+    { name = "respx" },
+    { name = "ruff" },
+    { name = "types-cachetools" },
+    { name = "types-pyyaml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "alembic", specifier = "==1.13.0" },
+    { name = "anthropic", specifier = ">=0.16.0,<1" },
+    { name = "apscheduler", specifier = "==3.10.4" },
+    { name = "asyncpg", specifier = ">=0.29.0,<1" },
+    { name = "bcrypt", marker = "extra == 'security'", specifier = ">=4.1.2" },
+    { name = "beautifulsoup4", specifier = "==4.12.2" },
+    { name = "black", marker = "extra == 'dev'", specifier = ">=23.12.0" },
+    { name = "cachetools", specifier = "==5.3.0" },
+    { name = "chardet", specifier = ">=5.2.0" },
+    { name = "chromadb", specifier = ">=0.5.0" },
+    { name = "chromadb", marker = "extra == 'all-vectordb'", specifier = ">=0.4.0" },
+    { name = "chromadb", marker = "extra == 'chroma'", specifier = ">=0.4.0" },
+    { name = "cohere", specifier = "==4.37" },
+    { name = "datasets", marker = "extra == 'ragas'", specifier = ">=2.14.0" },
+    { name = "dependency-injector", specifier = "==4.48.2" },
+    { name = "duckduckgo-search", specifier = ">=8.1.1" },
+    { name = "fastapi", specifier = "==0.104.1" },
+    { name = "google-generativeai", specifier = ">=0.6.0,<1" },
+    { name = "httpx", specifier = ">=0.23.0,<1" },
+    { name = "ipython", marker = "extra == 'dev'", specifier = ">=8.19.0" },
+    { name = "ko-core-news-sm", url = "https://github.com/explosion/spacy-models/releases/download/ko_core_news_sm-3.7.0/ko_core_news_sm-3.7.0-py3-none-any.whl" },
+    { name = "langchain", specifier = ">=0.1.0" },
+    { name = "langchain-anthropic", specifier = ">=0.1.0" },
+    { name = "langchain-core", specifier = ">=0.1.0" },
+    { name = "langchain-google-genai", specifier = ">=0.1.0" },
+    { name = "langchain-openai", specifier = ">=0.1.1" },
+    { name = "langchain-text-splitters", specifier = ">=0.0.1" },
+    { name = "langfuse", specifier = ">=2.0.0" },
+    { name = "langsmith", specifier = ">=0.0.60" },
+    { name = "lxml", specifier = "==5.3.0" },
+    { name = "markdown", specifier = "==3.5.1" },
+    { name = "motor", specifier = ">=3.0.0" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.8.0" },
+    { name = "neo4j", specifier = ">=5.15.0" },
+    { name = "networkx", specifier = ">=3.6.1" },
+    { name = "numpy", specifier = ">=1.26.0,<2" },
+    { name = "openai", specifier = ">=1.10.0,<2" },
+    { name = "openpyxl", specifier = "==3.1.2" },
+    { name = "pandas", specifier = ">=2.2.0" },
+    { name = "pgvector", marker = "extra == 'all-vectordb'", specifier = ">=0.2.0" },
+    { name = "pgvector", marker = "extra == 'pgvector'", specifier = ">=0.2.0" },
+    { name = "pillow", specifier = ">=10.0.0,<12" },
+    { name = "pinecone", specifier = ">=7.0.1" },
+    { name = "pinecone-client", marker = "extra == 'all-vectordb'", specifier = ">=3.0.0" },
+    { name = "pinecone-client", marker = "extra == 'pinecone'", specifier = ">=3.0.0" },
+    { name = "playwright", specifier = "==1.45.0" },
+    { name = "prometheus-client", marker = "extra == 'monitoring'", specifier = ">=0.19.0" },
+    { name = "psutil", specifier = "==5.9.0" },
+    { name = "psycopg2-binary", specifier = ">=2.9.11" },
+    { name = "pydantic-settings", specifier = "==2.1.0" },
+    { name = "pylnk3", specifier = ">=0.4.3" },
+    { name = "pymongo", specifier = ">=4.0.0" },
+    { name = "pypdf", specifier = ">=5.0.0,<7" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4.3" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21.1" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1.0" },
+    { name = "python-docx", specifier = "==1.1.0" },
+    { name = "python-dotenv", specifier = "==1.0.0" },
+    { name = "python-jose", extras = ["cryptography"], marker = "extra == 'security'", specifier = ">=3.3.0" },
+    { name = "python-multipart", specifier = "==0.0.6" },
+    { name = "pyyaml", specifier = "==6.0.1" },
+    { name = "qdrant-client", marker = "extra == 'all-vectordb'", specifier = ">=1.7.0" },
+    { name = "qdrant-client", marker = "extra == 'qdrant'", specifier = ">=1.7.0" },
+    { name = "ragas", marker = "extra == 'ragas'", specifier = ">=0.1.0,<0.2.0" },
+    { name = "redis", marker = "extra == 'redis'", specifier = ">=5.0.1" },
+    { name = "rouge-score", specifier = ">=0.1.2" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.9" },
+    { name = "scikit-learn", specifier = ">=1.3.0" },
+    { name = "sentence-transformers", specifier = ">=3.0.0" },
+    { name = "slowapi", specifier = "==0.1.9" },
+    { name = "spacy", specifier = ">=3.7.0" },
+    { name = "sqlalchemy", extras = ["asyncio"], specifier = "==2.0.23" },
+    { name = "structlog", specifier = "==23.2.0" },
+    { name = "tavily-python", specifier = ">=0.7.18" },
+    { name = "tiktoken", specifier = ">=0.7.0" },
+    { name = "torch", specifier = ">=2.0.0" },
+    { name = "uvicorn", extras = ["standard"], specifier = "==0.24.0" },
+    { name = "weaviate-client", specifier = ">=4.0.0" },
+    { name = "websockets", specifier = "==12.0" },
+]
+provides-extras = ["dev", "monitoring", "security", "redis", "ragas", "chroma", "pinecone", "qdrant", "pgvector", "all-vectordb"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "import-linter", specifier = ">=2.1" },
+    { name = "mypy", specifier = ">=1.17.1" },
+    { name = "pydeps", specifier = ">=1.12.21" },
+    { name = "pytest", specifier = ">=8.4.1" },
+    { name = "pytest-asyncio", specifier = ">=1.1.0" },
+    { name = "pytest-cov", specifier = ">=6.2.1" },
+    { name = "pytest-timeout", specifier = ">=2.3.1" },
+    { name = "respx", specifier = ">=0.22.0" },
+    { name = "ruff", specifier = ">=0.12.8" },
+    { name = "types-cachetools", specifier = ">=6.2.0.20251022" },
+    { name = "types-pyyaml", specifier = ">=6.0.12.20250915" },
+]
+
+[[package]]
 name = "onnxruntime"
 version = "1.23.2"
 source = { registry = "https://pypi.org/simple" }
@@ -4452,228 +4674,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/15/5e/ec560881e086f893947c8798949c72de5cfae9453fd05c2250f8dfeaa571/qdrant_client-1.12.1.tar.gz", hash = "sha256:35e8e646f75b7b883b3d2d0ee4c69c5301000bba41c82aa546e985db0f1aeb72", size = 237441, upload-time = "2024-10-29T17:31:09.698Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/68/c0/eef4fe9dad6d41333f7dc6567fa8144ffc1837c8a0edfc2317d50715335f/qdrant_client-1.12.1-py3-none-any.whl", hash = "sha256:b2d17ce18e9e767471368380dd3bbc4a0e3a0e2061fedc9af3542084b48451e0", size = 267171, upload-time = "2024-10-29T17:31:07.758Z" },
-]
-
-[[package]]
-name = "rag-chatbot"
-version = "1.0.7"
-source = { editable = "." }
-dependencies = [
-    { name = "alembic" },
-    { name = "anthropic" },
-    { name = "apscheduler" },
-    { name = "asyncpg" },
-    { name = "beautifulsoup4" },
-    { name = "cachetools" },
-    { name = "chardet" },
-    { name = "chromadb" },
-    { name = "cohere" },
-    { name = "dependency-injector" },
-    { name = "duckduckgo-search" },
-    { name = "fastapi" },
-    { name = "google-generativeai" },
-    { name = "httpx" },
-    { name = "ko-core-news-sm" },
-    { name = "langchain" },
-    { name = "langchain-anthropic" },
-    { name = "langchain-core" },
-    { name = "langchain-google-genai" },
-    { name = "langchain-openai" },
-    { name = "langchain-text-splitters" },
-    { name = "langfuse" },
-    { name = "langsmith" },
-    { name = "lxml" },
-    { name = "markdown" },
-    { name = "motor" },
-    { name = "neo4j" },
-    { name = "networkx" },
-    { name = "numpy" },
-    { name = "openai" },
-    { name = "openpyxl" },
-    { name = "pandas" },
-    { name = "pillow" },
-    { name = "pinecone" },
-    { name = "playwright" },
-    { name = "psutil" },
-    { name = "psycopg2-binary" },
-    { name = "pydantic-settings" },
-    { name = "pylnk3" },
-    { name = "pymongo" },
-    { name = "pypdf" },
-    { name = "python-docx" },
-    { name = "python-dotenv" },
-    { name = "python-multipart" },
-    { name = "pyyaml" },
-    { name = "rouge-score" },
-    { name = "scikit-learn" },
-    { name = "sentence-transformers" },
-    { name = "slowapi" },
-    { name = "spacy" },
-    { name = "sqlalchemy", extra = ["asyncio"] },
-    { name = "structlog" },
-    { name = "tavily-python" },
-    { name = "tiktoken" },
-    { name = "torch" },
-    { name = "uvicorn", extra = ["standard"] },
-    { name = "weaviate-client" },
-    { name = "websockets" },
-]
-
-[package.optional-dependencies]
-all-vectordb = [
-    { name = "chromadb" },
-    { name = "pgvector" },
-    { name = "pinecone-client" },
-    { name = "qdrant-client" },
-]
-chroma = [
-    { name = "chromadb" },
-]
-dev = [
-    { name = "black" },
-    { name = "ipython" },
-    { name = "mypy" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
-    { name = "ruff" },
-]
-monitoring = [
-    { name = "prometheus-client" },
-]
-pgvector = [
-    { name = "pgvector" },
-]
-pinecone = [
-    { name = "pinecone-client" },
-]
-qdrant = [
-    { name = "qdrant-client" },
-]
-ragas = [
-    { name = "datasets" },
-    { name = "ragas" },
-]
-redis = [
-    { name = "redis" },
-]
-security = [
-    { name = "bcrypt" },
-    { name = "python-jose", extra = ["cryptography"] },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "import-linter" },
-    { name = "mypy" },
-    { name = "pydeps" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
-    { name = "pytest-timeout" },
-    { name = "respx" },
-    { name = "ruff" },
-    { name = "types-cachetools" },
-    { name = "types-pyyaml" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "alembic", specifier = "==1.13.0" },
-    { name = "anthropic", specifier = ">=0.16.0,<1" },
-    { name = "apscheduler", specifier = "==3.10.4" },
-    { name = "asyncpg", specifier = ">=0.29.0,<1" },
-    { name = "bcrypt", marker = "extra == 'security'", specifier = ">=4.1.2" },
-    { name = "beautifulsoup4", specifier = "==4.12.2" },
-    { name = "black", marker = "extra == 'dev'", specifier = ">=23.12.0" },
-    { name = "cachetools", specifier = "==5.3.0" },
-    { name = "chardet", specifier = ">=5.2.0" },
-    { name = "chromadb", specifier = ">=0.5.0" },
-    { name = "chromadb", marker = "extra == 'all-vectordb'", specifier = ">=0.4.0" },
-    { name = "chromadb", marker = "extra == 'chroma'", specifier = ">=0.4.0" },
-    { name = "cohere", specifier = "==4.37" },
-    { name = "datasets", marker = "extra == 'ragas'", specifier = ">=2.14.0" },
-    { name = "dependency-injector", specifier = "==4.48.2" },
-    { name = "duckduckgo-search", specifier = ">=8.1.1" },
-    { name = "fastapi", specifier = "==0.104.1" },
-    { name = "google-generativeai", specifier = ">=0.6.0,<1" },
-    { name = "httpx", specifier = ">=0.23.0,<1" },
-    { name = "ipython", marker = "extra == 'dev'", specifier = ">=8.19.0" },
-    { name = "ko-core-news-sm", url = "https://github.com/explosion/spacy-models/releases/download/ko_core_news_sm-3.7.0/ko_core_news_sm-3.7.0-py3-none-any.whl" },
-    { name = "langchain", specifier = ">=0.1.0" },
-    { name = "langchain-anthropic", specifier = ">=0.1.0" },
-    { name = "langchain-core", specifier = ">=0.1.0" },
-    { name = "langchain-google-genai", specifier = ">=0.1.0" },
-    { name = "langchain-openai", specifier = ">=0.1.1" },
-    { name = "langchain-text-splitters", specifier = ">=0.0.1" },
-    { name = "langfuse", specifier = ">=2.0.0" },
-    { name = "langsmith", specifier = ">=0.0.60" },
-    { name = "lxml", specifier = "==5.3.0" },
-    { name = "markdown", specifier = "==3.5.1" },
-    { name = "motor", specifier = ">=3.0.0" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.8.0" },
-    { name = "neo4j", specifier = ">=5.15.0" },
-    { name = "networkx", specifier = ">=3.6.1" },
-    { name = "numpy", specifier = ">=1.26.0,<2" },
-    { name = "openai", specifier = ">=1.10.0,<2" },
-    { name = "openpyxl", specifier = "==3.1.2" },
-    { name = "pandas", specifier = ">=2.2.0" },
-    { name = "pgvector", marker = "extra == 'all-vectordb'", specifier = ">=0.2.0" },
-    { name = "pgvector", marker = "extra == 'pgvector'", specifier = ">=0.2.0" },
-    { name = "pillow", specifier = ">=10.0.0,<12" },
-    { name = "pinecone", specifier = ">=7.0.1" },
-    { name = "pinecone-client", marker = "extra == 'all-vectordb'", specifier = ">=3.0.0" },
-    { name = "pinecone-client", marker = "extra == 'pinecone'", specifier = ">=3.0.0" },
-    { name = "playwright", specifier = "==1.45.0" },
-    { name = "prometheus-client", marker = "extra == 'monitoring'", specifier = ">=0.19.0" },
-    { name = "psutil", specifier = "==5.9.0" },
-    { name = "psycopg2-binary", specifier = ">=2.9.11" },
-    { name = "pydantic-settings", specifier = "==2.1.0" },
-    { name = "pylnk3", specifier = ">=0.4.3" },
-    { name = "pymongo", specifier = ">=4.0.0" },
-    { name = "pypdf", specifier = ">=5.0.0,<7" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4.3" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21.1" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1.0" },
-    { name = "python-docx", specifier = "==1.1.0" },
-    { name = "python-dotenv", specifier = "==1.0.0" },
-    { name = "python-jose", extras = ["cryptography"], marker = "extra == 'security'", specifier = ">=3.3.0" },
-    { name = "python-multipart", specifier = "==0.0.6" },
-    { name = "pyyaml", specifier = "==6.0.1" },
-    { name = "qdrant-client", marker = "extra == 'all-vectordb'", specifier = ">=1.7.0" },
-    { name = "qdrant-client", marker = "extra == 'qdrant'", specifier = ">=1.7.0" },
-    { name = "ragas", marker = "extra == 'ragas'", specifier = ">=0.1.0,<0.2.0" },
-    { name = "redis", marker = "extra == 'redis'", specifier = ">=5.0.1" },
-    { name = "rouge-score", specifier = ">=0.1.2" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.9" },
-    { name = "scikit-learn", specifier = ">=1.3.0" },
-    { name = "sentence-transformers", specifier = ">=3.0.0" },
-    { name = "slowapi", specifier = "==0.1.9" },
-    { name = "spacy", specifier = ">=3.7.0" },
-    { name = "sqlalchemy", extras = ["asyncio"], specifier = "==2.0.23" },
-    { name = "structlog", specifier = "==23.2.0" },
-    { name = "tavily-python", specifier = ">=0.7.18" },
-    { name = "tiktoken", specifier = ">=0.7.0" },
-    { name = "torch", specifier = ">=2.0.0" },
-    { name = "uvicorn", extras = ["standard"], specifier = "==0.24.0" },
-    { name = "weaviate-client", specifier = ">=4.0.0" },
-    { name = "websockets", specifier = "==12.0" },
-]
-provides-extras = ["dev", "monitoring", "security", "redis", "ragas", "chroma", "pinecone", "qdrant", "pgvector", "all-vectordb"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "import-linter", specifier = ">=2.1" },
-    { name = "mypy", specifier = ">=1.17.1" },
-    { name = "pydeps", specifier = ">=1.12.21" },
-    { name = "pytest", specifier = ">=8.4.1" },
-    { name = "pytest-asyncio", specifier = ">=1.1.0" },
-    { name = "pytest-cov", specifier = ">=6.2.1" },
-    { name = "pytest-timeout", specifier = ">=2.3.1" },
-    { name = "respx", specifier = ">=0.22.0" },
-    { name = "ruff", specifier = ">=0.12.8" },
-    { name = "types-cachetools", specifier = ">=6.2.0.20251022" },
-    { name = "types-pyyaml", specifier = ">=6.0.12.20250915" },
 ]
 
 [[package]]
