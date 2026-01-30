@@ -4,46 +4,13 @@ Rich CLI 챗봇 단위 테스트
 CLI 챗봇의 핵심 함수를 테스트합니다.
 """
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 
 class TestChatHelpers:
     """CLI 챗봇 헬퍼 함수 테스트"""
-
-    def test_format_search_results_returns_string(self):
-        """
-        검색 결과를 Rich 포맷 문자열로 변환
-
-        Given: SearchResult 객체 리스트
-        When: format_search_results() 호출
-        Then: 포맷된 문자열 반환
-        """
-        from quickstart_local.chat import format_search_results
-
-        results = [
-            {"content": "RAG 시스템 설치 가이드", "score": 0.92, "source": "guide-001"},
-            {"content": "채팅 API 사용법", "score": 0.85, "source": "guide-002"},
-        ]
-
-        formatted = format_search_results(results)
-
-        assert "RAG 시스템 설치 가이드" in formatted
-        assert "0.92" in formatted
-
-    def test_format_search_results_empty(self):
-        """
-        빈 검색 결과 처리
-
-        Given: 빈 결과 리스트
-        When: format_search_results() 호출
-        Then: "검색 결과 없음" 메시지 반환
-        """
-        from quickstart_local.chat import format_search_results
-
-        formatted = format_search_results([])
-        assert "검색 결과" in formatted or "없" in formatted
 
     @pytest.mark.asyncio
     async def test_search_documents_calls_retriever(self):
@@ -63,3 +30,58 @@ class TestChatHelpers:
 
         mock_retriever.search.assert_called_once()
         assert isinstance(results, list)
+
+    def test_build_user_prompt_includes_documents(self):
+        """
+        사용자 프롬프트에 검색 문서가 포함되는지 확인
+
+        Given: 질문과 문서 리스트
+        When: build_user_prompt() 호출
+        Then: 프롬프트에 질문과 문서 내용이 포함됨
+        """
+        from quickstart_local.chat import build_user_prompt
+
+        documents = [
+            {"content": "RAG는 검색 증강 생성입니다."},
+            {"content": "하이브리드 검색은 Dense + Sparse 결합입니다."},
+        ]
+
+        prompt = build_user_prompt("RAG란?", documents)
+
+        assert "RAG란?" in prompt
+        assert "RAG는 검색 증강 생성입니다." in prompt
+        assert "하이브리드 검색은 Dense + Sparse 결합입니다." in prompt
+        assert "문서 1" in prompt
+        assert "문서 2" in prompt
+
+    @pytest.mark.asyncio
+    async def test_generate_answer_returns_none_without_api_key(self):
+        """
+        API 키 미설정 시 None 반환 확인
+
+        Given: GOOGLE_API_KEY 미설정
+        When: generate_answer() 호출
+        Then: None 반환
+        """
+        from quickstart_local.chat import generate_answer
+
+        with patch.dict("os.environ", {}, clear=True):
+            result = await generate_answer("테스트", [{"content": "문서"}])
+
+        assert result is None
+
+    def test_check_llm_available(self):
+        """
+        LLM 가용성 확인 함수 테스트
+
+        Given: GOOGLE_API_KEY 환경변수 설정/미설정
+        When: _check_llm_available() 호출
+        Then: 설정 여부에 따라 True/False 반환
+        """
+        from quickstart_local.chat import _check_llm_available
+
+        with patch.dict("os.environ", {"GOOGLE_API_KEY": "test-key"}):
+            assert _check_llm_available() is True
+
+        with patch.dict("os.environ", {}, clear=True):
+            assert _check_llm_available() is False

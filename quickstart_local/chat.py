@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Rich CLI 대화형 챗봇
+Rich CLI 대화형 RAG 챗봇
 
-Docker 없이 로컬에서 RAG 하이브리드 검색을 체험하는 CLI 인터페이스입니다.
-FastAPI 서버 없이 직접 검색 파이프라인을 호출합니다.
+Docker 없이 로컬에서 RAG 하이브리드 검색 + LLM 답변 생성을 체험하는 CLI 인터페이스입니다.
+FastAPI 서버 없이 직접 검색 파이프라인과 LLM을 호출합니다.
 
 사용법:
     uv run python quickstart_local/chat.py
@@ -13,9 +13,11 @@ FastAPI 서버 없이 직접 검색 파이프라인을 호출합니다.
     - chromadb: 벡터 검색
     - sentence-transformers: 임베딩
     - kiwipiepy, rank-bm25: BM25 검색 (선택적)
+    - openai: LLM 호출 (선택적, Google Gemini OpenAI 호환 API)
 """
 
 import asyncio
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -32,35 +34,96 @@ from quickstart_local.load_data import (  # noqa: E402
 
 # 상수
 TOP_K = 5
+GEMINI_MODEL = "gemini-2.0-flash"
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+
+# RAG 시스템 프롬프트
+SYSTEM_PROMPT = """당신은 OneRAG 시스템의 AI 어시스턴트입니다.
+사용자의 질문에 대해 제공된 참고 문서를 기반으로 정확하고 친절하게 답변하세요.
+
+규칙:
+- 참고 문서에 있는 정보만 사용하여 답변하세요.
+- 문서에 없는 내용은 "제공된 문서에서 해당 정보를 찾을 수 없습니다"라고 답하세요.
+- 답변은 자연스러운 한국어로 작성하세요.
+- 핵심 내용을 먼저 말하고, 필요하면 부연 설명을 추가하세요."""
 
 
-def format_search_results(results: list[dict[str, Any]]) -> str:
+def build_user_prompt(query: str, documents: list[dict[str, Any]]) -> str:
     """
-    검색 결과를 포맷된 문자열로 변환
+    검색 결과를 포함한 사용자 프롬프트 구성
 
     Args:
-        results: 검색 결과 리스트 (content, score, source 필드)
+        query: 사용자 질문
+        documents: 검색된 문서 리스트
 
     Returns:
-        Rich 마크업이 포함된 문자열
+        LLM에 전달할 사용자 프롬프트
     """
-    if not results:
-        return "[dim]검색 결과가 없습니다.[/dim]"
+    context_parts = []
+    for i, doc in enumerate(documents, 1):
+        content = doc.get("content", "")
+        context_parts.append(f"[문서 {i}]\n{content}")
 
-    lines = []
-    for i, r in enumerate(results, 1):
-        score = r.get("score", 0.0)
-        content = r.get("content", "")[:80]
-        lines.append(f"  {i}. [bold]{content}...[/bold] (점수: {score:.2f})")
+    context = "\n\n".join(context_parts)
 
-    return "\n".join(lines)
+    return f"""<참고문서>
+{context}
+</참고문서>
+
+<질문>
+{query}
+</질문>
+
+위 참고문서를 바탕으로 질문에 답변해주세요."""
+
+
+async def generate_answer(query: str, documents: list[dict[str, Any]]) -> str | None:
+    """
+    Google Gemini API로 RAG 답변 생성
+
+    Args:
+        query: 사용자 질문
+        documents: 검색된 문서 리스트
+
+    Returns:
+        LLM 답변 문자열. API 키 미설정 시 None 반환.
+    """
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        return None
+
+    try:
+        from openai import OpenAI
+
+        client = OpenAI(
+            base_url=GEMINI_API_URL,
+            api_key=api_key,
+            timeout=60,
+        )
+
+        user_prompt = build_user_prompt(query, documents)
+
+        response = client.chat.completions.create(
+            model=GEMINI_MODEL,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+            max_tokens=2048,
+            temperature=0.3,
+        )
+
+        return response.choices[0].message.content
+
+    except ImportError:
+        return None
+    except Exception as e:
+        return f"[답변 생성 오류] {e}"
 
 
 async def search_documents(
     query: str,
     retriever: Any = None,
-    bm25_index: Any = None,
-    merger: Any = None,
     top_k: int = TOP_K,
 ) -> list[dict[str, Any]]:
     """
@@ -69,8 +132,6 @@ async def search_documents(
     Args:
         query: 검색 쿼리
         retriever: ChromaRetriever 인스턴스
-        bm25_index: BM25Index 인스턴스 (선택적)
-        merger: HybridMerger 인스턴스 (선택적)
         top_k: 반환할 결과 수
 
     Returns:
@@ -145,11 +206,18 @@ def initialize_components() -> tuple[Any, Any | None, Any | None]:
     return retriever, bm25_index, merger
 
 
+def _check_llm_available() -> bool:
+    """LLM API 키 설정 여부 확인"""
+    return bool(os.getenv("GOOGLE_API_KEY"))
+
+
 async def chat_loop() -> None:
     """메인 대화 루프"""
     try:
         from rich.console import Console
+        from rich.markdown import Markdown
         from rich.panel import Panel
+        from rich.table import Table
         from rich.text import Text
     except ImportError:
         print("rich 패키지가 필요합니다: uv pip install rich")
@@ -157,26 +225,57 @@ async def chat_loop() -> None:
 
     console = Console()
 
-    # 헤더 출력
+    # ── 헤더 출력 ──
     header = Text()
-    header.append("OneRAG 로컬 챗봇\n", style="bold cyan")
-    header.append("하이브리드 검색 (벡터 + 한글 키워드)\n", style="dim")
-    header.append("종료: quit | 도움: help", style="dim")
-    console.print(Panel(header, border_style="cyan"))
+    header.append("OneRAG 로컬 챗봇\n", style="bold white")
+    header.append("하이브리드 검색 (벡터 + 한글 키워드) + LLM 답변 생성\n\n", style="dim")
+    header.append("  quit", style="bold yellow")
+    header.append("  종료  ", style="dim")
+    header.append("help", style="bold yellow")
+    header.append("  도움말  ", style="dim")
+    header.append("search", style="bold yellow")
+    header.append("  검색만 (답변 생성 없이)", style="dim")
+    console.print(Panel(header, title="[bold cyan]OneRAG[/bold cyan]", border_style="cyan"))
     console.print()
 
-    # 컴포넌트 초기화
-    console.print("[dim]검색 엔진 초기화 중...[/dim]")
-    retriever, bm25_index, merger = initialize_components()
+    # ── 컴포넌트 초기화 ──
+    with console.status("[bold cyan]검색 엔진 초기화 중...", spinner="dots"):
+        retriever, bm25_index, merger = initialize_components()
+        llm_available = _check_llm_available()
 
-    hybrid_status = "활성" if bm25_index is not None else "비활성 (Dense만 사용)"
-    console.print(f"[green]초기화 완료[/green] (하이브리드: {hybrid_status})")
+    # 상태 테이블 출력
+    status_table = Table(show_header=False, box=None, padding=(0, 2))
+    status_table.add_column("항목", style="dim")
+    status_table.add_column("상태")
+
+    hybrid_status = "[green]활성[/green]" if bm25_index else "[yellow]비활성 (Dense만)[/yellow]"
+    llm_status = "[green]활성 (Gemini)[/green]" if llm_available else "[yellow]비활성[/yellow]"
+
+    status_table.add_row("하이브리드 검색", hybrid_status)
+    status_table.add_row("LLM 답변 생성", llm_status)
+
+    console.print(Panel(status_table, title="[bold]초기화 완료[/bold]", border_style="green"))
+
+    if not llm_available:
+        console.print()
+        console.print(
+            Panel(
+                "[bold yellow]LLM 답변 생성을 사용하려면 GOOGLE_API_KEY를 설정하세요.[/bold yellow]\n\n"
+                "1. https://aistudio.google.com/apikey 에서 무료 API 키 발급\n"
+                "2. 환경변수 설정: [bold]export GOOGLE_API_KEY=\"발급받은키\"[/bold]\n\n"
+                "[dim]API 키 없이도 검색 기능은 정상 작동합니다.[/dim]",
+                title="[yellow]API 키 안내[/yellow]",
+                border_style="yellow",
+            )
+        )
+
     console.print()
 
-    # 대화 루프
+    # ── 대화 루프 ──
     while True:
         try:
-            query = console.input("[bold yellow]질문: [/bold yellow]").strip()
+            console.print("[bold cyan]─[/bold cyan]" * 50)
+            query = console.input("[bold yellow]질문 > [/bold yellow]").strip()
         except (EOFError, KeyboardInterrupt):
             console.print("\n[dim]종료합니다.[/dim]")
             break
@@ -186,34 +285,100 @@ async def chat_loop() -> None:
         if query.lower() in ("quit", "exit", "q"):
             console.print("[dim]종료합니다.[/dim]")
             break
+
         if query.lower() == "help":
+            help_table = Table(
+                title="사용 가능한 명령어",
+                show_header=True,
+                header_style="bold",
+                border_style="dim",
+            )
+            help_table.add_column("명령어", style="bold yellow", width=12)
+            help_table.add_column("설명")
+            help_table.add_row("quit / q", "챗봇 종료")
+            help_table.add_row("help", "이 도움말 표시")
+            help_table.add_row("search <질문>", "검색만 수행 (LLM 답변 없이)")
+
+            console.print()
+            console.print(help_table)
             console.print()
             console.print("[bold]예시 질문:[/bold]")
-            console.print("  - RAG 시스템이란?")
-            console.print("  - 설치 방법 알려줘")
-            console.print("  - 하이브리드 검색이 뭐야?")
-            console.print("  - 환경변수 설정 어떻게 해?")
+            console.print("  [dim]-[/dim] RAG 시스템이란?")
+            console.print("  [dim]-[/dim] 설치 방법 알려줘")
+            console.print("  [dim]-[/dim] 하이브리드 검색이 뭐야?")
+            console.print("  [dim]-[/dim] 환경변수 설정 어떻게 해?")
             console.print()
             continue
 
-        # 검색 실행
-        console.print("[dim]  검색 중...[/dim]")
-        results = await search_documents(
-            query=query,
-            retriever=retriever,
-        )
+        # "search" 접두사: 검색만 수행
+        search_only = False
+        if query.lower().startswith("search "):
+            search_only = True
+            query = query[7:].strip()
+            if not query:
+                console.print("[dim]검색어를 입력하세요. 예: search RAG란?[/dim]")
+                continue
 
-        # 결과 출력
-        if results:
-            console.print(f"\n  [bold]검색 결과 ({len(results)}건):[/bold]")
-            for i, r in enumerate(results[:5], 1):
-                score = r.get("score", 0.0)
-                content = r.get("content", "")
-                # 첫 100자만 표시
-                preview = content[:100].replace("\n", " ")
-                console.print(f"    {i}. {preview}... [dim](점수: {score:.2f})[/dim]")
-        else:
-            console.print("  [dim]검색 결과가 없습니다.[/dim]")
+        # ── 검색 실행 ──
+        console.print()
+        with console.status("[bold cyan]검색 중...", spinner="dots"):
+            results = await search_documents(
+                query=query,
+                retriever=retriever,
+            )
+
+        if not results:
+            console.print(
+                Panel("[dim]검색 결과가 없습니다.[/dim]", border_style="dim")
+            )
+            console.print()
+            continue
+
+        # ── 검색 결과 테이블 ──
+        result_table = Table(
+            title=f"검색 결과 ({len(results)}건)",
+            show_header=True,
+            header_style="bold",
+            border_style="blue",
+            title_style="bold blue",
+            expand=True,
+        )
+        result_table.add_column("#", style="dim", width=3, justify="right")
+        result_table.add_column("내용", ratio=5)
+        result_table.add_column("점수", style="cyan", width=6, justify="right")
+
+        for i, r in enumerate(results[:5], 1):
+            score = r.get("score", 0.0)
+            content = r.get("content", "")
+            # 첫 줄만 표시 (제목 역할)
+            first_line = content.split("\n")[0][:80]
+            result_table.add_row(str(i), first_line, f"{score:.2f}")
+
+        console.print(result_table)
+
+        # ── LLM 답변 생성 ──
+        if not search_only and llm_available:
+            console.print()
+            with console.status("[bold cyan]답변 생성 중...", spinner="dots"):
+                answer = await generate_answer(query, results)
+
+            if answer:
+                # Markdown 렌더링으로 깔끔하게 출력
+                console.print(
+                    Panel(
+                        Markdown(answer),
+                        title="[bold green]AI 답변[/bold green]",
+                        border_style="green",
+                        padding=(1, 2),
+                    )
+                )
+            else:
+                console.print("[dim]답변 생성에 실패했습니다.[/dim]")
+        elif not search_only and not llm_available:
+            console.print()
+            console.print(
+                "[dim]GOOGLE_API_KEY를 설정하면 AI 답변도 함께 제공됩니다.[/dim]"
+            )
 
         console.print()
 
