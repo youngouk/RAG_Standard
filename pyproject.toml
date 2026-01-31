@@ -39,6 +39,9 @@ dependencies = [
     "beautifulsoup4==4.12.2",
     "markdown==3.5.1",
     "Pillow>=10.0.0,<12", # 이미지 처리 (image_chat.py에서 필요)
+    # BM25 하이브리드 검색 (한국어 토크나이저 + BM25 인덱스)
+    "kiwipiepy>=0.18.0",
+    "rank-bm25>=0.2.2",
     # LangChain Core (최소 필수만 유지)
     "langchain>=0.1.0",
     "langchain-core>=0.1.0",

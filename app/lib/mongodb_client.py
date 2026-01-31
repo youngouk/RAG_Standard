@@ -68,7 +68,7 @@ class MongoDBClient:
             self._config = config.get("mongodb", {})
 
             if not self._config or not self._config.get("uri"):
-                logger.warning("MongoDB 설정이 없습니다. MongoDB 기능이 비활성화됩니다.")
+                logger.debug("MongoDB 설정이 없습니다. MongoDB 기능이 비활성화됩니다.")
                 return
 
             # MongoDB 연결 설정

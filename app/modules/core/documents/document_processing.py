@@ -28,7 +28,7 @@ try:
 
     SEMANTIC_CHUNKER_AVAILABLE = True
 except ImportError:
-    logger.warning(
+    logger.debug(
         "SemanticChunker not available. Install with: pip install langchain-experimental"
     )
     SEMANTIC_CHUNKER_AVAILABLE = False
@@ -37,7 +37,7 @@ try:
 
     LANGCHAIN_JSONLOADER_AVAILABLE = True
 except ImportError:
-    logger.warning("LangChain JSONLoader not available, using basic JSON processing")
+    logger.debug("LangChain JSONLoader not available, using basic JSON processing")
     LANGCHAIN_JSONLOADER_AVAILABLE = False
 
 
