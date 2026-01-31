@@ -48,7 +48,7 @@
     {
       "id": "guide-start-001",
       "title": "RAG_Standard 설치 방법",
-      "content": "RAG_Standard를 설치하는 방법은 3단계입니다.\n\n**Step 1: 클론 및 의존성 설치**\n```bash\ngit clone https://github.com/youngouk/RAG_Standard.git\ncd RAG_Standard\nuv sync\n```\n\n**Step 2: 환경 설정**\n```bash\ncp quickstart/.env.quickstart .env\n# .env 파일에서 GOOGLE_API_KEY 설정\n```\nGoogle AI Studio에서 무료 API 키 발급: https://aistudio.google.com/apikey\n\n**Step 3: 실행**\n```bash\nmake quickstart\n```\n\n완료 후 http://localhost:8000/docs 에서 API 테스트 가능합니다.\n\n**필수 요구사항:**\n- Docker 20.10+\n- Docker Compose v2+\n- uv 패키지 매니저 (자동 설치됨)",
+      "content": "RAG_Standard를 설치하는 방법은 3단계입니다.\n\n**Step 1: 클론 및 의존성 설치**\n```bash\ngit clone https://github.com/youngouk/RAG_Standard.git\ncd RAG_Standard\nuv sync\n```\n\n**Step 2: 환경 설정**\n```bash\ncp quickstart/.env.quickstart .env\n# .env 파일에서 GOOGLE_API_KEY 설정\n```\nGoogle AI Studio에서 무료 API 키 발급: https://aistudio.google.com/apikey\n\n**Step 3: 실행**\n```bash\nmake start\n```\n\n완료 후 http://localhost:8000/docs 에서 API 테스트 가능합니다.\n\n**필수 요구사항:**\n- Docker 20.10+\n- Docker Compose v2+\n- uv 패키지 매니저 (자동 설치됨)",
       "metadata": {
         "category": "시작하기",
         "tags": ["설치", "quickstart", "docker", "uv"]
@@ -56,17 +56,17 @@
     },
     {
       "id": "guide-start-002",
-      "title": "Quickstart vs Fullstack 차이점",
-      "content": "RAG_Standard는 두 가지 실행 모드를 제공합니다.\n\n**Quickstart (백엔드 전용)**\n```bash\nmake quickstart\n```\n- Weaviate (벡터 DB) + API 서버만 실행\n- API 테스트, 백엔드 개발에 적합\n- http://localhost:8000/docs 에서 Swagger UI 제공\n\n**Fullstack (프론트엔드 포함)**\n```bash\nmake fullstack\n```\n- Weaviate + API 서버 + React 프론트엔드\n- 전체 사용자 경험 테스트에 적합\n- http://localhost:5173 에서 챗봇 UI 제공\n\n**명령어 비교:**\n| 명령어 | 서비스 | 포트 |\n|--------|--------|------|\n| quickstart | Weaviate, API | 8080, 8000 |\n| fullstack | Weaviate, API, Frontend | 8080, 8000, 5173 |",
+      "title": "Start vs Start Full 차이점",
+      "content": "RAG_Standard는 두 가지 실행 모드를 제공합니다.\n\n**Start (백엔드 전용)**\n```bash\nmake start\n```\n- Weaviate (벡터 DB) + API 서버만 실행\n- API 테스트, 백엔드 개발에 적합\n- http://localhost:8000/docs 에서 Swagger UI 제공\n\n**Start Full (프론트엔드 포함)**\n```bash\nmake start-full\n```\n- Weaviate + API 서버 + React 프론트엔드\n- 전체 사용자 경험 테스트에 적합\n- http://localhost:5173 에서 챗봇 UI 제공\n\n**명령어 비교:**\n| 명령어 | 서비스 | 포트 |\n|--------|--------|------|\n| start | Weaviate, API | 8080, 8000 |\n| start-full | Weaviate, API, Frontend | 8080, 8000, 5173 |",
       "metadata": {
         "category": "시작하기",
-        "tags": ["quickstart", "fullstack", "비교"]
+        "tags": ["start", "start-full", "비교"]
       }
     },
     {
       "id": "guide-start-003",
       "title": "필수 환경변수 설정",
-      "content": "RAG_Standard 실행에 필요한 환경변수입니다.\n\n**최소 필수 (Quickstart)**\n```bash\n# LLM API 키 (하나만 필수)\nGOOGLE_API_KEY=AIza...  # 권장 (무료 티어)\n```\n\n**프로덕션 필수**\n```bash\n# 보안\nFASTAPI_AUTH_KEY=your-secret-key-32chars  # 관리자 API 인증\nENVIRONMENT=production\n\n# LLM (최소 1개)\nGOOGLE_API_KEY=AIza...\nOPENAI_API_KEY=sk-...      # 선택\nANTHROPIC_API_KEY=sk-ant-...  # 선택\n```\n\n**벡터 DB (기본값 자동 설정)**\n```bash\nWEAVIATE_URL=http://localhost:8080\nVECTOR_DB_PROVIDER=weaviate\n```\n\n**LLM 선택**\n```bash\nLLM_PROVIDER=google          # google, openai, anthropic, openrouter\nLLM_MODEL=gemini-2.0-flash   # 모델명\n```",
+      "content": "RAG_Standard 실행에 필요한 환경변수입니다.\n\n**최소 필수 (Start)**\n```bash\n# LLM API 키 (하나만 필수)\nGOOGLE_API_KEY=AIza...  # 권장 (무료 티어)\n```\n\n**프로덕션 필수**\n```bash\n# 보안\nFASTAPI_AUTH_KEY=your-secret-key-32chars  # 관리자 API 인증\nENVIRONMENT=production\n\n# LLM (최소 1개)\nGOOGLE_API_KEY=AIza...\nOPENAI_API_KEY=sk-...      # 선택\nANTHROPIC_API_KEY=sk-ant-...  # 선택\n```\n\n**벡터 DB (기본값 자동 설정)**\n```bash\nWEAVIATE_URL=http://localhost:8080\nVECTOR_DB_PROVIDER=weaviate\n```\n\n**LLM 선택**\n```bash\nLLM_PROVIDER=google          # google, openai, anthropic, openrouter\nLLM_MODEL=gemini-2.0-flash   # 모델명\n```",
       "metadata": {
         "category": "시작하기",
         "tags": ["환경변수", "설정", "API키"]

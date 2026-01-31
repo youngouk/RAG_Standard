@@ -15,7 +15,7 @@ Google Colab 또는 로컬 Jupyter에서 RAG 시스템을 체험할 수 있는 �
 ### 로컬 실행
 ```bash
 # 1. RAG 서버 시작
-make quickstart
+make start
 
 # 2. Jupyter 실행
 uv run jupyter notebook notebooks/

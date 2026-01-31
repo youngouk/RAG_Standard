@@ -20,7 +20,7 @@ class TestBuildUserPrompt:
         When: build_user_prompt() 호출
         Then: 프롬프트에 질문, 문서 내용, 문서 번호 포함
         """
-        from quickstart_local.chat import build_user_prompt
+        from easy_start.chat import build_user_prompt
 
         documents = [
             {"content": "RAG는 검색 증강 생성입니다."},
@@ -43,7 +43,7 @@ class TestBuildUserPrompt:
         When: build_user_prompt() 호출
         Then: 질문은 포함되고 에러 없이 반환
         """
-        from quickstart_local.chat import build_user_prompt
+        from easy_start.chat import build_user_prompt
 
         prompt = build_user_prompt("테스트 질문", [])
 
@@ -58,7 +58,7 @@ class TestBuildUserPrompt:
         When: build_user_prompt() 호출
         Then: 빈 문자열로 대체되어 에러 없이 동작
         """
-        from quickstart_local.chat import build_user_prompt
+        from easy_start.chat import build_user_prompt
 
         documents = [{"title": "제목만"}]
         prompt = build_user_prompt("질문", documents)
@@ -78,7 +78,7 @@ class TestSearchDocuments:
         When: search_documents() 호출
         Then: retriever.search()가 쿼리와 함께 호출됨
         """
-        from quickstart_local.chat import search_documents
+        from easy_start.chat import search_documents
 
         mock_retriever = AsyncMock()
         mock_retriever.search.return_value = []
@@ -98,7 +98,7 @@ class TestSearchDocuments:
         When: search_documents() 호출
         Then: 빈 리스트 반환
         """
-        from quickstart_local.chat import search_documents
+        from easy_start.chat import search_documents
 
         results = await search_documents("쿼리", retriever=None)
         assert results == []
@@ -112,7 +112,7 @@ class TestSearchDocuments:
         When: search_documents() 호출
         Then: content, score, source, metadata가 포함된 dict 리스트 반환
         """
-        from quickstart_local.chat import search_documents
+        from easy_start.chat import search_documents
 
         mock_sr = MagicMock()
         mock_sr.content = "테스트 내용"
@@ -140,7 +140,7 @@ class TestSearchDocuments:
         When: search_documents() 호출
         Then: getattr 기본값으로 안전하게 변환
         """
-        from quickstart_local.chat import search_documents
+        from easy_start.chat import search_documents
 
         mock_sr = MagicMock(spec=[])  # 빈 spec으로 모든 속성 없음
 
@@ -168,7 +168,7 @@ class TestGenerateAnswer:
         When: generate_answer() 호출
         Then: None 반환
         """
-        from quickstart_local.chat import generate_answer
+        from easy_start.chat import generate_answer
 
         with patch.dict("os.environ", {}, clear=True):
             result = await generate_answer("테스트", [{"content": "문서"}])
@@ -184,7 +184,7 @@ class TestGenerateAnswer:
         When: generate_answer() 호출
         Then: None 반환
         """
-        from quickstart_local.chat import generate_answer
+        from easy_start.chat import generate_answer
 
         with (
             patch.dict("os.environ", {"GOOGLE_API_KEY": "fake-key"}),
@@ -200,7 +200,7 @@ class TestFormatLlmError:
 
     def test_quota_error(self):
         """429 할당량 초과 에러 메시지"""
-        from quickstart_local.chat import _format_llm_error
+        from easy_start.chat import _format_llm_error
 
         error = Exception("Error code: 429 - quota exceeded")
         msg = _format_llm_error(error)
@@ -210,7 +210,7 @@ class TestFormatLlmError:
 
     def test_auth_error(self):
         """401 인증 실패 에러 메시지"""
-        from quickstart_local.chat import _format_llm_error
+        from easy_start.chat import _format_llm_error
 
         error = Exception("Error code: 401 - unauthorized")
         msg = _format_llm_error(error)
@@ -219,7 +219,7 @@ class TestFormatLlmError:
 
     def test_timeout_error(self):
         """타임아웃 에러 메시지"""
-        from quickstart_local.chat import _format_llm_error
+        from easy_start.chat import _format_llm_error
 
         error = Exception("Connection timed out")
         msg = _format_llm_error(error)
@@ -228,7 +228,7 @@ class TestFormatLlmError:
 
     def test_generic_error(self):
         """알 수 없는 에러 메시지"""
-        from quickstart_local.chat import _format_llm_error
+        from easy_start.chat import _format_llm_error
 
         error = ValueError("unexpected error")
         msg = _format_llm_error(error)
@@ -241,14 +241,14 @@ class TestCheckLlmAvailable:
 
     def test_available_with_key(self):
         """API 키 설정 시 True"""
-        from quickstart_local.chat import _check_llm_available
+        from easy_start.chat import _check_llm_available
 
         with patch.dict("os.environ", {"GOOGLE_API_KEY": "test-key"}):
             assert _check_llm_available() is True
 
     def test_unavailable_without_key(self):
         """API 키 미설정 시 False"""
-        from quickstart_local.chat import _check_llm_available
+        from easy_start.chat import _check_llm_available
 
         with patch.dict("os.environ", {}, clear=True):
             assert _check_llm_available() is False

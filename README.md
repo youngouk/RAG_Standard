@@ -24,7 +24,7 @@
 ```bash
 git clone https://github.com/youngouk/OneRAG.git && cd OneRAG
 cp quickstart/.env.quickstart .env  # GOOGLE_API_KEY만 설정
-make quickstart                      # 5분 후 → http://localhost:8000/docs
+make start                           # 5분 후 → http://localhost:8000/docs
 ```
 
 **Vector DB 바꾸고 싶다면?** `.env`에서 `VECTOR_DB_PROVIDER=pinecone` 한 줄 변경.
@@ -63,7 +63,7 @@ make quickstart                      # 5분 후 → http://localhost:8000/docs
 
 ---
 
-## 5분 Quickstart
+## 5분 시작 가이드
 
 ### 1. 설치
 
@@ -83,14 +83,14 @@ cp quickstart/.env.quickstart .env
 ### 3. 실행
 
 ```bash
-make quickstart
+make start
 ```
 
 **끝!** [http://localhost:8000/docs](http://localhost:8000/docs)에서 바로 테스트할 수 있습니다.
 
 ```bash
 # 종료
-make quickstart-down
+make start-down
 ```
 
 ---

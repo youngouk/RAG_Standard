@@ -124,10 +124,10 @@ frontend/dist/
 frontend/coverage/
 frontend/.turbo/
 # ===================================
-# Docker-Free 로컬 퀵스타트 데이터
+# Easy Start 데이터 (Docker 불필요 간편 실행)
 # ===================================
-quickstart_local/.chroma_data/
-quickstart_local/.bm25_index.pkl
+easy_start/.chroma_data/
+easy_start/.bm25_index.pkl
 # ===================================
 # Internal Analysis (로컬 전용)
 # ===================================

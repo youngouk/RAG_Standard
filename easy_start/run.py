@@ -7,7 +7,7 @@ Docker-Free 로컬 퀵스타트 원클릭 실행
 3단계: CLI 챗봇 실행
 
 사용법:
-    uv run python quickstart_local/run.py
+    uv run python easy_start/run.py
 """
 
 import importlib.util
@@ -22,7 +22,7 @@ sys.path.insert(0, str(project_root))
 # 상수
 REQUIRED_PACKAGES = ["chromadb", "sentence_transformers", "rich"]
 OPTIONAL_PACKAGES = ["kiwipiepy", "rank_bm25"]
-CHROMA_DATA_DIR = str(project_root / "quickstart_local" / ".chroma_data")
+CHROMA_DATA_DIR = str(project_root / "easy_start" / ".chroma_data")
 ENV_FILE_PATH = str(project_root / ".env")
 
 
@@ -113,7 +113,7 @@ def main() -> None:
     # Step 2: .env 파일 확인
     if not check_env_file():
         print("[2/3] .env 파일 생성 중...")
-        local_env = project_root / "quickstart_local" / ".env.local"
+        local_env = project_root / "easy_start" / ".env.local"
         if local_env.exists():
             import shutil
             shutil.copy(str(local_env), ENV_FILE_PATH)
@@ -122,7 +122,7 @@ def main() -> None:
             print("     발급: https://aistudio.google.com/apikey (무료)")
             print()
         else:
-            print("  ❌ quickstart_local/.env.local 파일을 찾을 수 없습니다")
+            print("  ❌ easy_start/.env.local 파일을 찾을 수 없습니다")
             sys.exit(1)
     else:
         print("[2/3] .env 파일 확인 완료")
@@ -132,7 +132,7 @@ def main() -> None:
     if not check_data_loaded():
         print("[3/3] 샘플 데이터 로드 중...")
         print()
-        load_script = project_root / "quickstart_local" / "load_data.py"
+        load_script = project_root / "easy_start" / "load_data.py"
         result = subprocess.run(
             [sys.executable, str(load_script)],
             cwd=str(project_root),
@@ -150,7 +150,7 @@ def main() -> None:
     print("💬 CLI 챗봇을 시작합니다...")
     print("=" * 50)
     print()
-    chat_script = project_root / "quickstart_local" / "chat.py"
+    chat_script = project_root / "easy_start" / "chat.py"
     result = subprocess.run([sys.executable, str(chat_script)], cwd=str(project_root))
     sys.exit(result.returncode)
 

@@ -1,5 +1,5 @@
 # RAG_Standard 통합 Docker Compose
-# Quickstart: make quickstart 명령어로 실행
+# Start: make start 명령어로 실행
 #
 # 포함 서비스:
 # - weaviate: 벡터 데이터베이스 (하이브리드 검색 지원)

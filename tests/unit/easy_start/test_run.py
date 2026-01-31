@@ -16,7 +16,7 @@ class TestCheckDependencies:
         When: check_dependencies() 호출
         Then: (True, []) 반환
         """
-        from quickstart_local.run import check_dependencies
+        from easy_start.run import check_dependencies
 
         ok, missing = check_dependencies()
 
@@ -31,7 +31,7 @@ class TestCheckDependencies:
         When: check_optional_dependencies() 호출
         Then: 리스트 반환 (빈 리스트 또는 누락 패키지)
         """
-        from quickstart_local.run import check_optional_dependencies
+        from easy_start.run import check_optional_dependencies
 
         missing = check_optional_dependencies()
 
@@ -49,7 +49,7 @@ class TestCheckEnvFile:
         When: check_env_file() 호출
         Then: False 반환
         """
-        from quickstart_local.run import check_env_file
+        from easy_start.run import check_env_file
 
         result = check_env_file("/nonexistent/path/.env")
         assert result is False
@@ -62,7 +62,7 @@ class TestCheckEnvFile:
         When: check_env_file() 호출
         Then: True 반환
         """
-        from quickstart_local.run import check_env_file
+        from easy_start.run import check_env_file
 
         env_file = tmp_path / ".env"
         env_file.write_text("KEY=value")
@@ -82,7 +82,7 @@ class TestCheckDataLoaded:
         When: check_data_loaded() 호출
         Then: False 반환
         """
-        from quickstart_local.run import check_data_loaded
+        from easy_start.run import check_data_loaded
 
         result = check_data_loaded("/nonexistent/chroma_data")
         assert result is False
@@ -95,7 +95,7 @@ class TestCheckDataLoaded:
         When: check_data_loaded() 호출
         Then: False 반환
         """
-        from quickstart_local.run import check_data_loaded
+        from easy_start.run import check_data_loaded
 
         empty_dir = tmp_path / "chroma"
         empty_dir.mkdir()
@@ -111,7 +111,7 @@ class TestCheckDataLoaded:
         When: check_data_loaded() 호출
         Then: True 반환
         """
-        from quickstart_local.run import check_data_loaded
+        from easy_start.run import check_data_loaded
 
         data_dir = tmp_path / "chroma"
         data_dir.mkdir()

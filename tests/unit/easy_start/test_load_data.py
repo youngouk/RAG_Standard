@@ -1,5 +1,5 @@
 """
-quickstart_local 데이터 로드 스크립트 단위 테스트
+easy_start 데이터 로드 스크립트 단위 테스트
 
 ChromaDB에 샘플 데이터를 올바르게 적재하는지 검증합니다.
 """
@@ -19,7 +19,7 @@ class TestPrepareDocuments:
         When: prepare_documents() 호출
         Then: id, content, metadata 필드를 가진 리스트 반환
         """
-        from quickstart_local.load_data import prepare_documents
+        from easy_start.load_data import prepare_documents
 
         raw_docs = [
             {
@@ -47,7 +47,7 @@ class TestPrepareDocuments:
         When: prepare_documents() 호출
         Then: "title\n\ncontent" 형식으로 병합
         """
-        from quickstart_local.load_data import prepare_documents
+        from easy_start.load_data import prepare_documents
 
         raw_docs = [
             {
@@ -69,7 +69,7 @@ class TestPrepareDocuments:
         When: prepare_documents() 호출
         Then: 빈 리스트 반환
         """
-        from quickstart_local.load_data import prepare_documents
+        from easy_start.load_data import prepare_documents
 
         result = prepare_documents([])
         assert result == []
@@ -82,7 +82,7 @@ class TestPrepareDocuments:
         When: prepare_documents() 호출
         Then: 해당 문서 스킵
         """
-        from quickstart_local.load_data import prepare_documents
+        from easy_start.load_data import prepare_documents
 
         raw_docs = [
             {"title": "제목", "content": "내용"},  # id 없음
@@ -101,7 +101,7 @@ class TestPrepareDocuments:
         When: prepare_documents() 호출
         Then: 해당 문서 스킵
         """
-        from quickstart_local.load_data import prepare_documents
+        from easy_start.load_data import prepare_documents
 
         raw_docs = [
             {"id": "no-content", "title": "제목만"},
@@ -118,7 +118,7 @@ class TestPrepareDocuments:
         When: prepare_documents() 호출
         Then: 기본 metadata로 변환
         """
-        from quickstart_local.load_data import prepare_documents
+        from easy_start.load_data import prepare_documents
 
         raw_docs = [
             {"id": "no-meta", "title": "제목", "content": "내용"},
@@ -137,7 +137,7 @@ class TestPrepareDocuments:
         When: prepare_documents() 호출
         Then: content만으로 full_content 구성
         """
-        from quickstart_local.load_data import prepare_documents
+        from easy_start.load_data import prepare_documents
 
         raw_docs = [
             {"id": "no-title", "content": "본문만 있음"},
@@ -162,7 +162,7 @@ class TestBm25Index:
         pytest.importorskip("kiwipiepy")
         pytest.importorskip("rank_bm25")
 
-        from quickstart_local.load_data import build_bm25_index
+        from easy_start.load_data import build_bm25_index
 
         docs = [
             {"id": "1", "content": "RAG 시스템 설치 가이드", "metadata": {}},
@@ -186,7 +186,7 @@ class TestBm25Index:
         pytest.importorskip("kiwipiepy")
         pytest.importorskip("rank_bm25")
 
-        from quickstart_local.load_data import (
+        from easy_start.load_data import (
             build_bm25_index,
             load_bm25_index,
             save_bm25_index,

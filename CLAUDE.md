@@ -23,7 +23,7 @@ cp quickstart/.env.quickstart .env
 # .env 파일에서 GOOGLE_API_KEY 설정 (무료: https://aistudio.google.com/apikey)
 
 # Step 3: 실행
-make quickstart
+make start
 ```
 
 ### API 키 설정 안내
@@ -53,11 +53,13 @@ quickstart/
 docker-compose.yml       # 통합 실행 (Weaviate + API)
 ```
 
-**Quickstart 명령어**:
-- `make quickstart` - 원클릭 실행 (Weaviate + API + 샘플데이터)
-- `make quickstart-down` - 서비스 종료
-- `make quickstart-logs` - 로그 확인
-- `make quickstart-load` - 샘플 데이터만 로드
+**실행 명령어**:
+- `make start` - Docker 원클릭 실행 (Weaviate + API + 샘플데이터)
+- `make start-down` - 서비스 종료
+- `make start-logs` - 로그 확인
+- `make start-load` - 샘플 데이터만 로드
+- `make easy-start` - Docker 없이 간편 실행 (비개발자 추천)
+- `make start-full` - 전체 스택 실행 (Frontend + Backend + Weaviate)
 
 ## 개발 명령어
 

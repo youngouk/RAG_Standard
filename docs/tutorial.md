@@ -66,10 +66,10 @@ PINECONE_ENVIRONMENT=your_environment
 
 ## 2. 첫 번째 RAG 실행하기
 
-### Quickstart로 바로 시작
+### 바로 시작하기
 
 ```bash
-make quickstart
+make start
 ```
 
 이 명령어 하나로:
@@ -98,7 +98,7 @@ curl -X POST "http://localhost:8000/api/v1/chat" \
 ### 종료
 
 ```bash
-make quickstart-down
+make start-down
 ```
 
 ---

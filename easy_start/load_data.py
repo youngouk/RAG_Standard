@@ -6,7 +6,7 @@ Docker 없이 ChromaDB에 샘플 FAQ 데이터를 적재합니다.
 BM25 인덱스도 함께 구축하여 하이브리드 검색을 준비합니다.
 
 사용법:
-    uv run python quickstart_local/load_data.py
+    uv run python easy_start/load_data.py
 
 의존성:
     - chromadb: 벡터 스토어
@@ -26,8 +26,8 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # 상수
-CHROMA_PERSIST_DIR = str(project_root / "quickstart_local" / ".chroma_data")
-BM25_INDEX_PATH = str(project_root / "quickstart_local" / ".bm25_index.pkl")
+CHROMA_PERSIST_DIR = str(project_root / "easy_start" / ".chroma_data")
+BM25_INDEX_PATH = str(project_root / "easy_start" / ".bm25_index.pkl")
 COLLECTION_NAME = "documents"
 SAMPLE_DATA_PATH = project_root / "quickstart" / "sample_data.json"
 

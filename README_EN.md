@@ -24,7 +24,7 @@
 ```bash
 git clone https://github.com/youngouk/OneRAG.git && cd OneRAG
 cp quickstart/.env.quickstart .env  # Set only GOOGLE_API_KEY
-make quickstart                      # 5 min later → http://localhost:8000/docs
+make start                           # 5 min later → http://localhost:8000/docs
 ```
 
 **Want to change Vector DB?** Change 1 line in `.env`: `VECTOR_DB_PROVIDER=pinecone`
@@ -63,7 +63,7 @@ make quickstart                      # 5 min later → http://localhost:8000/doc
 
 ---
 
-## 5-Minute Quickstart
+## 5-Minute Start Guide
 
 ### 1. Install
 
@@ -83,14 +83,14 @@ cp quickstart/.env.quickstart .env
 ### 3. Run
 
 ```bash
-make quickstart
+make start
 ```
 
 **Done!** Test immediately at [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ```bash
 # Stop
-make quickstart-down
+make start-down
 ```
 
 ---

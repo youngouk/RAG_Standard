@@ -6,7 +6,7 @@ Docker 없이 로컬에서 RAG 하이브리드 검색 + LLM 답변 생성을 체
 FastAPI 서버 없이 직접 검색 파이프라인과 LLM을 호출합니다.
 
 사용법:
-    uv run python quickstart_local/chat.py
+    uv run python easy_start/chat.py
 
 의존성:
     - rich: CLI UI
@@ -26,7 +26,7 @@ from typing import Any
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from quickstart_local.load_data import (  # noqa: E402
+from easy_start.load_data import (  # noqa: E402
     BM25_INDEX_PATH,
     CHROMA_PERSIST_DIR,
     COLLECTION_NAME,
@@ -224,7 +224,7 @@ def initialize_components() -> tuple[Any, Any | None, Any | None]:
     merger = None
     try:
         if Path(BM25_INDEX_PATH).exists():
-            from quickstart_local.load_data import load_bm25_index
+            from easy_start.load_data import load_bm25_index
             bm25_index = load_bm25_index(BM25_INDEX_PATH)
 
             from app.modules.core.retrieval.bm25_engine import HybridMerger

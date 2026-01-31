@@ -1,4 +1,4 @@
-.PHONY: help install install-dev sync update run dev test lint format clean docker-build docker-run neo4j-up neo4j-down neo4j-logs test-neo4j quickstart quickstart-down quickstart-logs quickstart-load frontend-install frontend-dev frontend-build frontend-lint frontend-test fullstack fullstack-down fullstack-logs fullstack-build
+.PHONY: help install install-dev sync update run dev test lint format clean docker-build docker-run neo4j-up neo4j-down neo4j-logs test-neo4j start start-down start-logs start-load frontend-install frontend-dev frontend-build frontend-lint frontend-test start-full start-full-down start-full-logs start-full-build easy-start easy-start-load easy-start-chat easy-start-clean
 
 # 기본 타겟
 .DEFAULT_GOAL := help
@@ -8,11 +8,11 @@ help:
 	@echo "RAG_Standard - Makefile Commands"
 	@echo "================================="
 	@echo ""
-	@echo "🚀 Quickstart (처음 시작하세요!):"
-	@echo "  quickstart      - 원클릭 실행 (Weaviate + API + 샘플데이터)"
-	@echo "  quickstart-down - Quickstart 서비스 종료"
-	@echo "  quickstart-logs - Quickstart 로그 확인"
-	@echo "  quickstart-load - 샘플 데이터만 로드"
+	@echo "🚀 Start (처음 시작하세요!):"
+	@echo "  start           - 원클릭 실행 (Docker: Weaviate + API + 샘플데이터)"
+	@echo "  start-down      - 서비스 종료"
+	@echo "  start-logs      - 로그 확인"
+	@echo "  start-load      - 샘플 데이터만 로드"
 	@echo ""
 	@echo "📦 설치:"
 	@echo "  install         - uv로 프로덕션 의존성 설치"
@@ -55,17 +55,17 @@ help:
 	@echo "  frontend-lint    - 프론트엔드 린트 검사"
 	@echo "  frontend-test    - 프론트엔드 테스트"
 	@echo ""
-	@echo "🏠 Docker-Free 로컬 퀵스타트 (Docker 불필요!):"
-	@echo "  quickstart-local      - Docker 없이 원클릭 실행 (ChromaDB + BM25)"
-	@echo "  quickstart-local-load - ChromaDB 샘플 데이터 로드"
-	@echo "  quickstart-local-chat - CLI 챗봇 실행"
-	@echo "  quickstart-local-clean - 로컬 퀵스타트 데이터 삭제"
+	@echo "🏠 Easy Start (Docker 불필요! 비개발자 추천):"
+	@echo "  easy-start            - Docker 없이 간편 실행 (ChromaDB + BM25)"
+	@echo "  easy-start-load       - ChromaDB 샘플 데이터 로드"
+	@echo "  easy-start-chat       - CLI 챗봇 실행"
+	@echo "  easy-start-clean      - 간편 시작 데이터 삭제"
 	@echo ""
-	@echo "🔗 Fullstack (Frontend + Backend + Weaviate):"
-	@echo "  fullstack       - 전체 스택 Docker Compose 실행"
-	@echo "  fullstack-down  - Fullstack 서비스 종료"
-	@echo "  fullstack-logs  - Fullstack 로그 확인"
-	@echo "  fullstack-build - Fullstack Docker 이미지 빌드"
+	@echo "🔗 Start Full (Frontend + Backend + Weaviate):"
+	@echo "  start-full      - 전체 스택 Docker Compose 실행"
+	@echo "  start-full-down - 서비스 종료"
+	@echo "  start-full-logs - 로그 확인"
+	@echo "  start-full-build - Docker 이미지 빌드"
 
 # uv 설치 확인
 check-uv:
@@ -258,7 +258,7 @@ test-neo4j:
 	uv run pytest tests/integration/test_neo4j_integration.py -v -m integration
 
 # =============================================================================
-# Quickstart 명령 (원클릭 실행)
+# Start 명령 (Docker 원클릭 실행)
 # =============================================================================
 
 # .env 파일 확인
@@ -275,9 +275,9 @@ check-env:
 		exit 1; \
 	fi
 
-# Quickstart 원클릭 실행
-quickstart: check-env
-	@echo "🚀 RAG_Standard Quickstart 시작..."
+# Docker 원클릭 실행
+start: check-env
+	@echo "🚀 RAG_Standard 시작..."
 	@echo ""
 	@echo "1️⃣  Docker 서비스 시작 중..."
 	docker compose up -d
@@ -289,53 +289,53 @@ quickstart: check-env
 	uv run python quickstart/load_sample_data.py
 	@echo ""
 	@echo "=============================================="
-	@echo "🎉 Quickstart 완료!"
+	@echo "🎉 시작 완료!"
 	@echo ""
 	@echo "📖 API 문서: http://localhost:8000/docs"
 	@echo "❤️  Health:   http://localhost:8000/health"
 	@echo ""
-	@echo "종료: make quickstart-down"
+	@echo "종료: make start-down"
 	@echo "=============================================="
 
-# Quickstart 서비스 종료
-quickstart-down:
-	@echo "🛑 Quickstart 서비스 종료 중..."
+# 서비스 종료
+start-down:
+	@echo "🛑 서비스 종료 중..."
 	docker compose down
 	@echo "✅ 종료 완료"
 
-# Quickstart 로그 확인
-quickstart-logs:
+# 로그 확인
+start-logs:
 	docker compose logs -f
 
 # 샘플 데이터만 로드
-quickstart-load:
+start-load:
 	@echo "📥 샘플 데이터 로드 중..."
 	uv run python quickstart/load_sample_data.py
 
 # =============================================================================
-# Docker-Free 로컬 퀵스타트 (ChromaDB + BM25 하이브리드)
+# Easy Start 명령 (Docker 불필요, 간편 실행)
 # =============================================================================
 
-# Docker-Free 원클릭 실행
-quickstart-local: check-uv check-env
-	@echo "🚀 Docker-Free 로컬 퀵스타트 시작..."
-	uv run python quickstart_local/run.py
+# Docker 없이 간편 실행
+easy-start: check-uv check-env
+	@echo "🚀 Easy Start — Docker 없이 간편 실행..."
+	uv run python easy_start/run.py
 
-# 로컬 퀵스타트 데이터만 로드
-quickstart-local-load: check-uv
+# 간편 시작 데이터만 로드
+easy-start-load: check-uv
 	@echo "📥 ChromaDB 샘플 데이터 로드 중..."
-	uv run python quickstart_local/load_data.py
+	uv run python easy_start/load_data.py
 
-# 로컬 퀵스타트 CLI 챗봇만 실행
-quickstart-local-chat: check-uv
+# 간편 시작 CLI 챗봇만 실행
+easy-start-chat: check-uv
 	@echo "💬 CLI 챗봇 실행..."
-	uv run python quickstart_local/chat.py
+	uv run python easy_start/chat.py
 
-# 로컬 퀵스타트 데이터 초기화
-quickstart-local-clean:
-	@echo "🗑️  로컬 퀵스타트 데이터 삭제 중..."
-	rm -rf quickstart_local/.chroma_data
-	rm -f quickstart_local/.bm25_index.pkl
+# 간편 시작 데이터 초기화
+easy-start-clean:
+	@echo "🗑️  간편 시작 데이터 삭제 중..."
+	rm -rf easy_start/.chroma_data
+	rm -f easy_start/.bm25_index.pkl
 	@echo "✅ 초기화 완료"
 
 # =============================================================================
@@ -371,12 +371,12 @@ frontend-test: frontend-install
 	cd frontend && npm run test:run
 
 # =============================================================================
-# Fullstack 명령 (Frontend + Backend + Weaviate)
+# Start Full 명령 (Frontend + Backend + Weaviate)
 # =============================================================================
 
-# Fullstack Docker Compose 실행 (Frontend + Backend + DB + 가이드 챗봇 데이터)
-fullstack: check-env
-	@echo "🚀 Fullstack 서비스 시작 중..."
+# 전체 스택 Docker Compose 실행 (Frontend + Backend + DB + 가이드 챗봇 데이터)
+start-full: check-env
+	@echo "🚀 전체 스택 서비스 시작 중..."
 	@echo ""
 	@echo "서비스 목록:"
 	@echo "  - Weaviate (벡터 DB): http://localhost:8080"
@@ -393,7 +393,7 @@ fullstack: check-env
 	uv run python quickstart/load_sample_data.py
 	@echo ""
 	@echo "=============================================="
-	@echo "🎉 Fullstack 서비스 준비 완료!"
+	@echo "🎉 전체 스택 서비스 준비 완료!"
 	@echo ""
 	@echo "🎨 Frontend: http://localhost:5173"
 	@echo "📖 API Docs: http://localhost:8000/docs"
@@ -404,21 +404,21 @@ fullstack: check-env
 	@echo "   - 채팅 API 사용법 알려줘"
 	@echo "   - 환경변수 뭐 설정해야 돼?"
 	@echo ""
-	@echo "종료: make fullstack-down"
+	@echo "종료: make start-full-down"
 	@echo "=============================================="
 
-# Fullstack 서비스 종료
-fullstack-down:
-	@echo "🛑 Fullstack 서비스 종료 중..."
+# 전체 스택 서비스 종료
+start-full-down:
+	@echo "🛑 전체 스택 서비스 종료 중..."
 	docker compose --profile fullstack down
 	@echo "✅ 종료 완료"
 
-# Fullstack 로그 확인
-fullstack-logs:
+# 전체 스택 로그 확인
+start-full-logs:
 	docker compose --profile fullstack logs -f
 
-# Fullstack Docker 이미지 빌드
-fullstack-build:
-	@echo "🔨 Fullstack Docker 이미지 빌드 중..."
+# 전체 스택 Docker 이미지 빌드
+start-full-build:
+	@echo "🔨 전체 스택 Docker 이미지 빌드 중..."
 	docker compose --profile fullstack build
 	@echo "✅ 이미지 빌드 완료"

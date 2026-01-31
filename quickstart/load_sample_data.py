@@ -4,7 +4,7 @@
 
 Quickstart 샘플 FAQ 데이터를 Weaviate에 직접 적재합니다.
 로컬 임베딩 모델(Qwen3-Embedding-0.6B)을 사용하여 벡터를 생성합니다.
-make quickstart-load 또는 make quickstart 명령어에서 자동 실행됩니다.
+make start-load 또는 make start 명령어에서 자동 실행됩니다.
 """
 
 import json
