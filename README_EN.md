@@ -22,9 +22,16 @@
 ## TL;DR
 
 ```bash
-git clone https://github.com/youngouk/OneRAG.git && cd OneRAG
-cp quickstart/.env.quickstart .env  # Set only GOOGLE_API_KEY
-make start                           # 5 min later → http://localhost:8000/docs
+git clone https://github.com/youngouk/OneRAG.git && cd OneRAG && uv sync
+```
+
+```bash
+# 🐳 Have Docker → Full API Server (Weaviate + FastAPI + Swagger UI)
+cp quickstart/.env.quickstart .env   # Set only GOOGLE_API_KEY
+make start                            # → http://localhost:8000/docs
+
+# 💻 No Docker → Local CLI Chatbot (runs instantly)
+make easy-start                       # → Chat directly in terminal
 ```
 
 **Want to change Vector DB?** Change 1 line in `.env`: `VECTOR_DB_PROVIDER=pinecone`
@@ -63,35 +70,59 @@ make start                           # 5 min later → http://localhost:8000/doc
 
 ---
 
-## 5-Minute Start Guide
+## Getting Started
 
-### 1. Install
+Choose the method that fits your environment.
+
+|  | Full API Server (`make start`) | CLI Chatbot (`make easy-start`) |
+|---|---|---|
+| **Docker** | Required | Not required |
+| **Vector DB** | Weaviate (hybrid search) | ChromaDB (local file) |
+| **Interface** | REST API + Swagger UI | Terminal CLI |
+| **LLM** | 4 providers (Gemini, OpenAI, Claude, OpenRouter) | Gemini / OpenRouter |
+| **Use case** | Production, API integration, team dev | Learning, exploration, quick PoC |
+
+### Option A: Full API Server (Docker)
 
 ```bash
 git clone https://github.com/youngouk/OneRAG.git
 cd OneRAG && uv sync
-```
 
-### 2. Configure
-
-```bash
 cp quickstart/.env.quickstart .env
 # Set GOOGLE_API_KEY in .env file
 # (Free: https://aistudio.google.com/apikey)
-```
 
-### 3. Run
-
-```bash
 make start
 ```
 
 **Done!** Test immediately at [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ```bash
-# Stop
-make start-down
+make start-down  # Stop
 ```
+
+### Option B: Local CLI Chatbot (No Docker)
+
+Experience RAG search + AI answers directly in your terminal without Docker.
+
+```bash
+git clone https://github.com/youngouk/OneRAG.git
+cd OneRAG && uv sync
+
+make easy-start
+```
+
+25 sample documents are auto-loaded with hybrid search (Dense + BM25) ready to go.
+To enable AI answer generation, set one API key:
+
+```bash
+# Set just one of these
+export GOOGLE_API_KEY="your-key"       # Free: https://aistudio.google.com/apikey
+export OPENROUTER_API_KEY="your-key"   # https://openrouter.ai/keys
+```
+
+> **New to OneRAG?** Start with `make easy-start` and ask the chatbot directly.
+> "What is hybrid search?", "How does the RAG pipeline work?" — the sample data has the answers.
 
 ---
 

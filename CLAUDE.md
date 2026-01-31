@@ -9,57 +9,58 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **상태**: ✅ **1,707개 테스트 통과**, ✅ **보안 완비**, ✅ **DI 패턴 완성**, ✅ **Streaming API**, ✅ **WebSocket**
 - **주요 개선**: Reranker 확장 - Cohere, Local(sentence-transformers), OpenRouter 추가 (v1.2.1)
 
-## 🚀 Quickstart (3단계)
+## 🚀 시작하기
 
-**처음 사용자를 위한 원클릭 실행 환경**:
+두 가지 실행 방법을 제공합니다:
+
+|  | Full API 서버 (`make start`) | CLI 챗봇 (`make easy-start`) |
+|---|---|---|
+| **Docker** | 필요 | 불필요 |
+| **Vector DB** | Weaviate (하이브리드 검색) | ChromaDB (로컬 파일) |
+| **인터페이스** | REST API + Swagger UI | 터미널 CLI |
+| **LLM** | 4종 (Gemini, OpenAI, Claude, OpenRouter) | Gemini / OpenRouter |
+| **용도** | 프로덕션, API 통합, 팀 개발 | 학습, 체험, 빠른 PoC |
+
+### 방법 A: Full API 서버 (Docker)
 
 ```bash
-# Step 1: 클론 및 설치
 git clone https://github.com/youngouk/OneRAG.git
 cd OneRAG && uv sync
-
-# Step 2: 환경 설정 (API 키 하나만 설정)
-cp quickstart/.env.quickstart .env
-# .env 파일에서 GOOGLE_API_KEY 설정 (무료: https://aistudio.google.com/apikey)
-
-# Step 3: 실행
-make start
+cp quickstart/.env.quickstart .env  # GOOGLE_API_KEY만 설정
+make start                           # → http://localhost:8000/docs
 ```
 
-### API 키 설정 안내
+### 방법 B: 로컬 CLI 챗봇 (Docker 불필요)
 
-RAG 시스템의 **답변 생성** 기능을 사용하려면 LLM API 키가 필요합니다.
+```bash
+git clone https://github.com/youngouk/OneRAG.git
+cd OneRAG && uv sync
+make easy-start                      # → 터미널에서 바로 대화
+```
 
-| 기능 | API 키 필요 여부 |
-|-----|----------------|
-| 문서 임베딩 | ❌ 불필요 (로컬 모델 사용) |
-| 벡터 검색 | ❌ 불필요 |
-| **답변 생성** | ✅ **필요** (Gemini 무료) |
-
-**🔑 Gemini API 키 발급 (무료, 30초):**
-1. https://aistudio.google.com/apikey 접속
-2. "Create API Key" 클릭
-3. `.env` 파일에 추가: `GOOGLE_API_KEY="발급받은키"`
-
-> 💡 API 키 없이 실행하면 Docker 로그에 발급 안내가 표시됩니다.
+API 키 없이도 검색은 작동합니다. AI 답변 생성을 사용하려면:
+- `GOOGLE_API_KEY` (무료: https://aistudio.google.com/apikey)
+- 또는 `OPENROUTER_API_KEY` (https://openrouter.ai/keys)
 
 **Quickstart 구조**:
 ```
-quickstart/
-├── .env.quickstart      # 최소 설정 템플릿
-├── sample_data.json     # 25개 FAQ 샘플 데이터
-└── load_sample_data.py  # Weaviate 데이터 로드 (로컬 임베딩)
+quickstart/                  # Docker 기반
+├── .env.quickstart          # 최소 설정 템플릿
+├── sample_data.json         # 25개 FAQ 샘플 데이터
+└── load_sample_data.py      # Weaviate 데이터 로드
 
-docker-compose.yml       # 통합 실행 (Weaviate + API)
+easy_start/                  # Docker-Free
+├── .env.local               # 로컬 설정 템플릿
+├── chat.py                  # CLI 챗봇 (Rich UI)
+├── load_data.py             # ChromaDB 데이터 로드
+└── run.py                   # 원클릭 실행 오케스트레이터
 ```
 
 **실행 명령어**:
 - `make start` - Docker 원클릭 실행 (Weaviate + API + 샘플데이터)
 - `make start-down` - 서비스 종료
 - `make start-logs` - 로그 확인
-- `make start-load` - 샘플 데이터만 로드
-- `make easy-start` - Docker 없이 간편 실행 (비개발자 추천)
-- `make start-full` - 전체 스택 실행 (Frontend + Backend + Weaviate)
+- `make easy-start` - Docker-Free 로컬 CLI 챗봇 실행
 
 ## 개발 명령어
 
